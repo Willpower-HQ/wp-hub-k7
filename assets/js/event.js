@@ -89,15 +89,21 @@
     return '<select class="stsel" data-s="' + E(cur) + '" data-cid="' + E(it.c.id) + '" data-pid="' + E(pid) + '">'
       + STATUS_OPTS.map(o => '<option' + (o === cur ? ' selected' : '') + '>' + o + '</option>').join('') + '</select>';
   };
-  const showWhy = () => tab === 'suggested';
+  const detailOf = it => {
+    if (tab === 'suggested') return (it.why || []).slice(0, 2).map(E).join(' &middot; ');
+    const vt = it.vendorType ? (Array.isArray(it.vendorType) ? it.vendorType : [it.vendorType]) : null;
+    if (vt && vt.length) return vt.map(E).join(', ');
+    if (it.row && it.row.speakerAngle) return E(it.row.speakerAngle);
+    if (it.row && it.row.relationship) return E(it.row.relationship);
+    return '';
+  };
   const personRow = it => {
-    const c = it.c;
-    const why = showWhy() ? (it.why || []).slice(0, 2).map(E).join(' &middot; ') : '';
+    const c = it.c, detail = detailOf(it);
     return '<div class="prow">'
-      + '<div class="who"><div class="nm">' + E(c.name || '') + (c.linkedin ? ' <a class="li" href="' + E(c.linkedin) + '" target="_blank" rel="noopener">in</a>' : '') + '</div><div class="t">' + E(c.title || '') + '</div>' + (why ? '<div class="why">' + why + '</div>' : '') + '</div>'
-      + '<div class="co">' + E(c.companyName || c.company || '') + '</div>'
-      + '<div>' + statusSelect(it) + '</div>'
-      + '<div>' + HUB.emailCell(c) + '</div>'
+      + '<div class="who"><div class="nm">' + E(c.name || '') + (c.linkedin ? ' <a class="li" href="' + E(c.linkedin) + '" target="_blank" rel="noopener">in</a>' : '') + '</div><div class="t">' + E(c.title || '') + '</div>' + (detail ? '<div class="why">' + detail + '</div>' : '') + '</div>'
+      + '<div class="co" data-label="Company">' + E(c.companyName || c.company || '') + '</div>'
+      + '<div data-label="Status">' + statusSelect(it) + '</div>'
+      + '<div data-label="Email">' + HUB.emailCell(c) + '</div>'
       + '</div>';
   };
   const renderList = items => {
@@ -118,6 +124,8 @@
 
     let items = (B[tab] || []).slice();
     if (q) { const s = q.toLowerCase(); items = items.filter(i => [i.c.name, i.c.companyName, i.c.title, i.c.email].some(x => (x || '').toLowerCase().includes(s))); }
+    const sf = document.getElementById('statusFilter').value;
+    if (sf) items = items.filter(i => (i.status || 'TO CONTACT') === sf);
 
     let head = '';
     if (tab === 'suggested' && v.internal) head = '<div class="banner">Curated from your database and people who came to similar past events. Showing ' + B.suggested.length + ' of ' + B.suggestedTotal + '. <a href="#" id="toggleAll" style="text-decoration:underline">' + (showAll ? 'show top matches only' : 'show all') + '</a></div>';
@@ -138,6 +146,9 @@
       render();
     });
   };
+  const sfEl = document.getElementById('statusFilter');
+  sfEl.innerHTML = '<option value="">Any status</option>' + STATUS_OPTS.map(o => '<option>' + o + '</option>').join('');
+  sfEl.onchange = render;
   document.getElementById('search').oninput = e => { q = e.target.value; render(); };
   document.getElementById('includeUnknown').onchange = render;
   render();

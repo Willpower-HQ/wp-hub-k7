@@ -35,20 +35,22 @@ let closeDrawer = () => {};
       && (!chk('bouncedF') || c.emailStatus === 'bounced') && (!chk('noEmailF') || !c.email));
   };
 
+  const row = c =>
+    '<div class="prow click" data-id="' + E(c.id) + '">'
+    + '<div class="who"><div class="nm">' + E(c.name || '') + (c.linkedin ? ' <a class="li" href="' + E(c.linkedin) + '" target="_blank" rel="noopener">in</a>' : '') + '</div>'
+    + '<div class="t">' + E(c.title || '') + '</div>'
+    + '<div style="margin-top:4px">' + (c.metro || []).slice(0, 2).map(m => '<span class="tag city">' + E(m) + '</span>').join('') + (c.category || []).slice(0, 1).map(m => '<span class="tag line">' + E(m) + '</span>').join('') + '</div></div>'
+    + '<div class="co" data-label="Company">' + E(c.companyName || '') + '</div>'
+    + '<div data-label="Status">' + (c.outreachStatus ? '<span class="st" data-s="' + E(c.outreachStatus) + '">' + E(c.outreachStatus) + '</span>' : '<span class="mut">-</span>') + '</div>'
+    + '<div data-label="Email">' + HUB.emailCell(c) + '</div>'
+    + '</div>';
   const render = () => {
     const items = filtered();
     const slice = items.slice(page * PAGE, page * PAGE + PAGE);
-    document.getElementById('rows').innerHTML = slice.length ? slice.map(c =>
-      '<tr class="click" data-id="' + E(c.id) + '">'
-      + '<td class="nm">' + E(c.name || '') + '</td>'
-      + '<td>' + E(c.companyName || '') + '</td>'
-      + '<td class="mut">' + E(c.title || '') + '</td>'
-      + '<td>' + (c.metro || []).slice(0, 2).map(m => '<span class="tag city">' + E(m) + '</span>').join('') + '</td>'
-      + '<td class="sub2">' + (c.category || []).slice(0, 2).map(E).join(', ') + '</td>'
-      + '<td>' + HUB.emailCell(c) + '</td>'
-      + '<td>' + (c.outreachStatus ? '<span class="st" data-s="' + E(c.outreachStatus) + '">' + E(c.outreachStatus) + '</span>' : '') + '</td>'
-      + '</tr>').join('') : '<tr><td colspan="7" class="empty">No matches.</td></tr>';
-    document.querySelectorAll('tr.click').forEach(tr => tr.onclick = () => openDrawer(tr.dataset.id));
+    document.getElementById('rows').innerHTML = slice.length
+      ? '<div class="plist"><div class="phead-row"><span>Name / title</span><span>Company</span><span>Status</span><span>Email</span></div>' + slice.map(row).join('') + '</div>'
+      : '<div class="plist"><div class="empty">No matches.</div></div>';
+    document.querySelectorAll('.prow.click').forEach(r => r.onclick = e => { if (e.target.closest('a,button,select')) return; openDrawer(r.dataset.id); });
 
     const pages = Math.ceil(items.length / PAGE);
     document.getElementById('pager').innerHTML = pages > 1
