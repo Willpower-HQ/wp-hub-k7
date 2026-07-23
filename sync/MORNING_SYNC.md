@@ -48,8 +48,8 @@ From step 4's sent messages, collect To recipients with NO contact match. Skip a
 ## 7. Follow-up computation (JSON only, never Notion)
 For every pipeline row on an upcoming event with status CONTACTED / 1ST / 2ND FOLLOW UP: if lastOutbound is set, no lastInbound after it, and 5 or more business days have passed, set followUp = {needed:true, daysSince, suggest: next step name}. Otherwise followUp = {needed:false}.
 
-## 8. Nearby events scan
-For each internal event dated within the next 60 days whose entry in data/nearby-events.json has `scannedAt` older than 7 days (or missing): run 3-4 web searches, e.g. "<city> wellness events <month year>", "lu.ma <city> wellness <month>", "eventbrite <city> health fitness founders <month year>", plus one tuned to the event type. Keep results within 10 days either side of our date, in or near the same city. Dedupe by name+date. Write items with {name, date, city, venue, url, source, why} and scannedAt.
+## 8. Nearby events scan (NYC and Austin only)
+Only scan for events in NYC and Austin. Willpower does not operate in other metros yet, so City Scout is scoped to those two cities. For each internal event in NYC or Austin dated within the next 60 days whose entry in data/nearby-events.json has `scannedAt` older than 7 days (or missing): run 3-4 web searches, e.g. "<city> wellness events <month year>", "lu.ma <city> wellness <month>", "eventbrite <city> health fitness founders <month year>", plus one tuned to the event type. Keep results within 10 days either side of our date, in or near the same city. Dedupe by name+date. Write items with {name, date, city, venue, url, source, why} and scannedAt. Do NOT scan events for our LA/Miami/Vegas tentpole rows (the City Scout map ignores non-NYC/Austin pins anyway). This is separate from the CONTACTS database, which keeps people from every city.
 
 ## 8b. Curated invite seeding for new Willpower events (RULE)
 When a NEW internal (Willpower) event appears in Event Calendar with an empty or near-empty EVENT PIPELINE (fewer than 10 rows):

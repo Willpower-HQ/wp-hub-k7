@@ -2,11 +2,9 @@
   const { events, nearby, meta } = await HUB.load();
   const E = HUB.esc;
 
-  const CITY = {
-    NYC: [40.741, -73.989], AUSTIN: [30.267, -97.743], DALLAS: [32.777, -96.797],
-    HOUSTON: [29.760, -95.369], 'SAN ANTONIO': [29.424, -98.494], MIAMI: [25.775, -80.194],
-    CALIFORNIA: [34.052, -118.243], 'LAS VEGAS': [36.169, -115.139],
-  };
+  // City Scout is intentionally limited to the two cities Willpower operates in.
+  const CITY = { NYC: [40.741, -73.989], AUSTIN: [30.267, -97.743] };
+  const ALLOWED = new Set(['NYC', 'AUSTIN']);
   const VENUE = [
     ['remedy place flatiron', [40.7402, -73.9903]], ['remedy place', [40.7402, -73.9903]],
     ['center415', [40.7490, -73.9870]], ['hilton midtown', [40.7625, -73.9800]],
@@ -42,8 +40,10 @@
     });
   });
 
-  // city buttons
-  const cities = [...new Set(pins.map(p => p.cityKey).filter(Boolean))].sort();
+  // hard limit to the two cities Willpower operates in
+  const pinsF = pins.filter(p => ALLOWED.has(p.cityKey));
+  pins.length = 0; pinsF.forEach(p => pins.push(p));
+  const cities = ['NYC', 'AUSTIN'].filter(c => pins.some(p => p.cityKey === c));
   let active = cities.includes('NYC') ? 'NYC' : (cities[0] || 'ALL');
   const btnRow = document.getElementById('cityBtns');
   const drawBtns = () => {

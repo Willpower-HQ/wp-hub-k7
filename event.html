@@ -23,11 +23,12 @@
 </div></div>
 
 <div class="wrap">
-  <div class="phead">
-    <div class="eyebrow" id="crumb"><a href="index.html" style="color:var(--yellow)">&larr; Events</a></div>
+  <div class="ehero">
+    <div class="kicker"><a href="index.html" style="color:var(--yellow)">&larr; All events</a><span id="countdown"></span></div>
     <h1 id="title">Loading...</h1>
-    <div class="sub" id="sub"></div>
-    <div class="summary" id="summary"></div>
+    <div class="facts" id="facts"></div>
+    <div class="links" id="links"></div>
+    <div class="pbar" id="pbar"></div>
   </div>
 
   <div id="banners"></div>
@@ -39,16 +40,7 @@
     <label class="tog"><input type="checkbox" id="includeUnknown"> Include contacts with no listed city</label>
   </div>
   <div id="listHead"></div>
-  <div class="tablecard">
-    <table>
-      <thead><tr>
-        <th style="width:22%">Name</th><th style="width:26%">Title</th>
-        <th style="width:150px">Status</th><th style="width:230px">Email</th><th>Why / notes</th>
-      </tr></thead>
-      <tbody id="rows"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
-    </table>
-  </div>
-  <div class="pager" id="pager"></div>
+  <div id="groups"><div class="empty">Loading...</div></div>
 
   <div class="sectionrow"><h2>Other events around this date</h2><span class="note">good to scout, or for Bill to attend</span></div>
   <div id="nearby"></div>
