@@ -71,6 +71,15 @@ For any event with a Luma URL:
 - External events: the page shows ONLY confirmed attendees (pipeline rows, ideally fed by Luma), never a database dump. Keep it that way.
 - Vendor statuses for an event live in that event's vendor tracker (e.g. the Aug 19 "VENDOR TRACKER" db, data source collection://37238388-847e-800b-a4c9-000b83df7d45). build_data.py merges vendor-tracker rows (CONFIRMED vendors, vendor type, gifting-suite vs attendee) into the pipeline. When a new event gets its own vendor tracker, add its raw pull as sync/state/raw/vendors_<event>.json with an eventId field and build_data folds it in. Skip blank tracker rows (no contact and no company).
 
+## 8e. Reconcile shared status edits from Firebase (RULE, once Firebase is configured)
+The live site lets the team set each person's status from a dropdown; those edits are stored in
+Firestore under collection `overrides`, one doc per event named `event_<eventId>` with a `status` map
+of contactId -> status. When Firebase is configured (assets/js/firebase-config.js has an apiKey):
+- Read each `overrides/event_<eventId>` doc.
+- For each contactId -> status, find that contact's EVENT PIPELINE row for the event (or create one if missing) and set its Status to the chosen value, unless a human already set a more advanced status in Notion. This makes the web edits authoritative in the CRM.
+- After writing to Notion, clear the applied entries from the Firestore doc so we do not re-apply and so the web board reflects the reconciled Notion state.
+- Access to Firestore uses the same Firebase project; run the reconciliation with a service account or the team login credentials stored on the Mac (document the key path when set up). If Firebase is not configured, skip this step.
+
 ## 9. Publish
 1. `python3 sync/build_data.py` (merges raw shards, preserves gmail-derived fields, writes data/*.json).
 2. Apply this run's gmail-derived updates into data/contacts.json and data/pipeline.json (emailStatus, bouncedEmail, leftCompany, lastOutbound/lastInbound, outboundCount, followUp) if build_data did not already carry them.

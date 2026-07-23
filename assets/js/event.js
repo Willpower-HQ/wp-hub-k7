@@ -22,11 +22,9 @@
   if (ev.website) links += '<a class="btn" href="' + E(ev.website) + '" target="_blank" rel="noopener">Website</a>';
   document.getElementById('links').innerHTML = links;
 
-  // local status marks (this device). Notion stays the shared record; the morning sync reconciles.
-  const OVKEY = 'wp_status_' + ev.id;
+  // Shared status marks. With Firebase configured these live in the cloud and sync to everyone;
+  // otherwise they fall back to this device. The morning sync reconciles into Notion.
   let overrides = {};
-  try { overrides = JSON.parse(localStorage.getItem(OVKEY) || '{}'); } catch (e) {}
-  const saveOv = () => { try { localStorage.setItem(OVKEY, JSON.stringify(overrides)); } catch (e) {} };
   const STATUS_OPTS = ['TO CONTACT', 'CONTACTED', '1ST FOLLOW UP', '2ND FOLLOW UP', '3RD FOLLOW UP', 'ENGAGED', 'NEGOTIATIONS', 'CONFIRMED', 'DECLINED', 'BACKUP'];
 
   const effPipeline = () => {
@@ -125,12 +123,17 @@
     const t = document.getElementById('toggleAll'); if (t) t.onclick = e => { e.preventDefault(); showAll = !showAll; render(); };
     document.querySelectorAll('select.stsel').forEach(sel => sel.onchange = () => {
       const cid = sel.dataset.cid, val = sel.value;
+      // optimistic local update; the watcher will confirm from the shared store
       if (val === 'TO CONTACT') delete overrides[cid]; else overrides[cid] = val;
-      saveOv(); render();
+      WP_AUTH.setStatus(ev.id, cid, val);
+      render();
     });
   };
   document.getElementById('search').oninput = e => { q = e.target.value; render(); };
   document.getElementById('includeUnknown').onchange = render;
-  render();
-  document.getElementById('foot').textContent = meta.lastSyncAt ? 'Data refreshed ' + new Date(meta.lastSyncAt).toLocaleString() : '';
+  render(); // initial paint
+
+  // once auth is ready (past the login gate), subscribe to the shared status store; re-render on any remote change
+  if (window.WP_AUTH) WP_AUTH.onReady(() => WP_AUTH.watchStatus(ev.id, map => { overrides = map || {}; render(); }));
+  document.getElementById('foot').textContent = (WP_AUTH.enabled ? 'Live shared board. ' : '') + (meta.lastSyncAt ? 'Data refreshed ' + new Date(meta.lastSyncAt).toLocaleString() : '');
 })();
