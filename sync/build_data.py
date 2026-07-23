@@ -246,6 +246,9 @@ for vf in sorted(glob.glob(os.path.join(RAW, 'vendors_*.json'))):
         cid = (rel_ids(r.get('contactRel')) or [None])[0]
         coid = (rel_ids(r.get('companyRel')) or [None])[0]
         co = companies.get(coid) if coid else None
+        # skip blank placeholder rows (no person, no company)
+        if not cid and not co:
+            continue
         if cid and (cid, ev_id) in pipe_by_key:
             p = pipe_by_key[(cid, ev_id)]
             if STATUS_RANK.get(status, 0) > STATUS_RANK.get(p.get('status'), 0):

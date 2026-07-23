@@ -1,104 +1,134 @@
-/* Recommendation engine: buckets contacts into Speakers / Vendors / Cold Invite for an event,
-   and surfaces anyone already in motion (contacted -> confirmed) at the top.
-   Pure functions, testable in console: SCORE.recommend(contacts, pipeline, event, eventById, opts) */
+/* Event view builder.
+   For Willpower (internal) events: curated invite suggestions from the database,
+   boosted by whoever was on similar past events, plus role buckets for people already on the list.
+   For external events: only people we know are attending (pipeline rows), never a database dump.
+   SCORE.buildEventView(contacts, pipeline, event, eventById, events, opts) */
 const SCORE = (() => {
   const TIER_W = { 'Tier A': 40, 'Connectors': 35, 'Founders': 35, 'Investors': 30, 'Tier B': 30, 'Media': 25, 'GROW NY': 22, 'Tier C': 20 };
   const VENDOR_INDUSTRIES = ['WELLNESS','FITNESS','FOOD','BEVERAGE','F&B','BEAUTY','HEALTH','SUPPLEMENT','CPG','NUTRITION'];
-  // higher = more advanced / float higher in "in progress"
   const STATUS_RANK = {
-    'CONFIRMED': 100, 'NEGOTIATIONS': 90, 'ENGAGED': 85,
-    'FINAL REMINDER SENT': 70, '3RD FOLLOW UP': 66, '2ND FOLLOW UP': 62, '1ST FOLLOW UP': 58,
-    'INTERESTED': 55, 'CONTACTED': 50, 'BACKUP': 30, 'BOUNCED EMAIL': 10, 'TO CONTACT': 0, 'DECLINED': -10,
+    'CONFIRMED': 100, 'NEGOTIATIONS': 90, 'ENGAGED': 85, 'FINAL REMINDER SENT': 70,
+    '3RD FOLLOW UP': 66, '2ND FOLLOW UP': 62, '1ST FOLLOW UP': 58, 'INTERESTED': 55,
+    'CONTACTED': 50, 'BACKUP': 30, 'BOUNCED EMAIL': 10, 'TO CONTACT': 0, 'DECLINED': -10,
   };
   const IN_MOTION = new Set(['CONTACTED','INTERESTED','1ST FOLLOW UP','2ND FOLLOW UP','3RD FOLLOW UP','FINAL REMINDER SENT','ENGAGED','NEGOTIATIONS','CONFIRMED']);
+  const SERIES = ['wellness','lounge','world','sports','performance','catalyst','house','padel','holiday','roundtable','summit','f1','formula','plunge','dinner'];
+  const SUGGEST_CAP = 120;
 
   const has = (arr, v) => (arr || []).some(x => (x || '').toUpperCase().includes(v));
+  const tokens = s => (s || '').toLowerCase().match(/[a-z0-9]+/g) || [];
+  const isProductVendor = (row, c) => !!(row && (row.role === 'Vendor' || row.role === 'Sponsor guest' || (row.vendorType && row.vendorType.length))) || has((c || {}).category, 'VENDOR') || has((c || {}).category, 'SPONSOR');
 
-  function speakerScore(c, hist) {
-    let s = 0, why = [];
-    if (has(c.category, 'SPEAKER')) { s += 100; why.push('speaker category'); }
-    else if (c.seniority === 'C-SUITE' || c.wpTier === 'Founders') { s += 60; why.push('c-suite / founder'); }
-    else return null;
-    if (c.wpTier === 'Tier A') { s += 15; why.push('Tier A'); }
-    if (hist.spoke) { s += 12; why.push('spoke before'); }
-    if (has(c.category, 'VIP')) { s += 10; why.push('VIP'); }
-    if (c.email && c.emailStatus === 'ok') s += 8;
-    return { s, why };
+  function similarPast(event, events) {
+    const now = new Date();
+    const evTok = new Set(tokens(event.name).filter(t => SERIES.includes(t)));
+    return (events || []).filter(p => p.id !== event.id && p.date && new Date(p.date) < now)
+      .filter(p => {
+        const pt = tokens(p.name);
+        const shareSeries = pt.some(t => evTok.has(t));
+        const sameCity = event.cityKey && p.cityKey === event.cityKey;
+        return shareSeries || (sameCity && (p.type || []).some(t => (event.type || []).includes(t)));
+      });
   }
-  function vendorScore(c, hist) {
+
+  function fitScore(c) {
     let s = 0, why = [];
-    if (has(c.category, 'VENDOR')) { s += 100; why.push('vendor'); }
-    else if (has(c.category, 'SPONSOR')) { s += 90; why.push('sponsor'); }
-    else if (VENDOR_INDUSTRIES.some(k => (c.industry || '').toUpperCase().includes(k))) { s += 55; why.push((c.industry||'').toLowerCase()); }
-    else return null;
-    if (hist.vendor) { s += 15; why.push('vendor before'); }
-    if (hist.sentProduct) { s += 8; why.push('sent product'); }
-    if (c.partnerTier) s += 10;
-    if (c.email && c.emailStatus === 'ok') s += 8;
-    return { s, why };
-  }
-  function coldScore(c) {
-    let s = 0, why = [];
-    s += TIER_W[c.wpTier] || 10;
+    s += TIER_W[c.wpTier] || 8;
     if (c.wpTier) why.push(c.wpTier);
-    if (has(c.category, 'VIP')) { s += 20; why.push('VIP'); }
+    if (has(c.category, 'VIP')) { s += 22; why.push('VIP'); }
     else if (has(c.category, 'GENERAL - TARGET')) s += 10;
+    if (has(c.category, 'SPEAKER')) { s += 12; why.push('past speaker'); }
     if (c.seniority === 'C-SUITE') { s += 15; why.push('c-suite'); }
     else if (c.seniority === 'VP/SENIOR LEADERSHIP' || c.seniority === 'DIRECTOR') s += 8;
-    if (c.email && c.emailStatus === 'ok') s += 15; else s -= 5;
+    if (VENDOR_INDUSTRIES.some(k => (c.industry || '').toUpperCase().includes(k))) s += 6;
+    if (c.email && c.emailStatus === 'ok') s += 12; else s -= 4;
     return { s, why };
   }
-  function historyOf(rows, eventById, contactId) {
-    const past = (rows || []).filter(r => r.contactId === contactId).filter(r => {
-      const e = eventById[r.eventId];
-      return e && e.date && new Date(e.date) < new Date();
-    });
-    return {
-      spoke: past.some(r => r.role === 'Speaker target' && r.status === 'CONFIRMED'),
-      vendor: past.some(r => r.role === 'Sponsor guest' || r.role === 'Vendor'),
-      sentProduct: past.some(r => r.sentProduct),
-      attended: past.filter(r => r.status === 'CONFIRMED').length,
-    };
-  }
-  const ROLE_BUCKET = { 'Speaker target': 'speakers', 'Sponsor guest': 'vendors', 'Vendor': 'vendors', 'Attendee target': 'cold', 'VIP host': 'cold' };
 
-  function recommend(contacts, pipeline, event, eventById, opts) {
+  function buildEventView(contacts, pipeline, event, eventById, events, opts) {
     opts = opts || {};
     const rowsForEvent = {};
-    (pipeline || []).forEach(r => { if (r.eventId === event.id && r.contactId) rowsForEvent[r.contactId] = r; });
+    const eventRows = [];
+    (pipeline || []).forEach(r => { if (r.eventId === event.id) { eventRows.push(r); if (r.contactId) rowsForEvent[r.contactId] = r; } });
 
-    const buckets = { inprogress: [], speakers: [], vendors: [], cold: [] };
-    contacts.forEach(c => {
-      const row = rowsForEvent[c.id];
-      const inCity = event.cityKey && (c.metro || []).includes(event.cityKey);
-      if (!row && !inCity && !opts.includeUnknown) return;
-      if (!row && opts.includeUnknown && (c.metro || []).length && event.cityKey && !inCity) return;
-      if (row && row.status === 'DECLINED') return;
-
-      const hist = historyOf(pipeline, eventById, c.id);
-      const sp = speakerScore(c, hist), ve = vendorScore(c, hist);
-      let bucket, score, why;
-      if (row && ROLE_BUCKET[row.role]) {
-        bucket = ROLE_BUCKET[row.role];
-        const sc = bucket === 'speakers' ? (sp || { s: 50, why: [] }) : bucket === 'vendors' ? (ve || { s: 50, why: [] }) : coldScore(c);
-        score = sc.s; why = sc.why;
-      } else if (sp) { bucket = 'speakers'; score = sp.s; why = sp.why; }
-      else if (ve) { bucket = 'vendors'; score = ve.s; why = ve.why; }
-      else { const co = coldScore(c); bucket = 'cold'; score = co.s; why = co.why; }
-
-      const status = row ? row.status : null;
-      const rank = status ? (STATUS_RANK[status] ?? 0) : -1;
-      const item = { c, row: row || null, bucket, score, why, hist, status, rank, vendorType: row && row.vendorType, logistics: row && row.logistics };
-      buckets[bucket].push(item);
-      if (status && IN_MOTION.has(status)) buckets.inprogress.push(item);
+    // contacts who were on a similar past event -> boost + reason
+    const pastEvents = similarPast(event, events);
+    const pastIds = new Set(pastEvents.map(e => e.id));
+    const pastByContact = {};
+    (pipeline || []).forEach(r => {
+      if (r.contactId && pastIds.has(r.eventId)) {
+        const e = eventById[r.eventId];
+        if (e && (!pastByContact[r.contactId] || (e.date > (eventById[pastByContact[r.contactId].eventId] || {}).date)))
+          pastByContact[r.contactId] = r;
+      }
     });
 
-    // in-progress: most advanced first (confirmed -> contacted)
-    buckets.inprogress.sort((a, c) => c.rank - a.rank || c.score - a.score);
-    // within each recommendation bucket, people already in motion float above cold ones
-    ['speakers', 'vendors', 'cold'].forEach(k => buckets[k].sort((a, c) => c.rank - a.rank || c.score - a.score));
-    return buckets;
+    const cById = {}; contacts.forEach(c => cById[c.id] = c);
+    const mkItem = (c, row, score, why, extra) => Object.assign({ c, row: row || null, status: row ? row.status : null,
+      rank: row ? (STATUS_RANK[row.status] ?? 0) : -1, score: score || 0, why: why || [],
+      vendorType: row && row.vendorType }, extra || {});
+
+    const buckets = { inprogress: [], speakers: [], vendors: [], attendees: [], suggested: [] };
+
+    if (!event.internal) {
+      // external event: ONLY people we know are attending (pipeline rows). Never a DB dump.
+      eventRows.forEach(r => {
+        const c = (r.contactId && cById[r.contactId]) || { name: r.companyName || r.name || 'Unknown', companyName: r.companyName };
+        const it = mkItem(c, r, 0, [r.role, r.relationship].filter(Boolean));
+        buckets.attendees.push(it);
+        if (IN_MOTION.has(r.status)) buckets.inprogress.push(it);
+      });
+    } else {
+      // internal event: role buckets for people on the list + curated suggestions from the DB
+      const onList = new Set();
+      eventRows.forEach(r => {
+        const c = (r.contactId && cById[r.contactId]) || { name: r.companyName || r.name || 'Unknown', companyName: r.companyName };
+        if (r.contactId) onList.add(r.contactId);
+        const why = [];
+        if (r.vendorType) why.push(...(Array.isArray(r.vendorType) ? r.vendorType : [r.vendorType]));
+        const it = mkItem(c, r, 0, why.length ? why : [r.role].filter(Boolean));
+        if (r.status === 'DECLINED') return;
+        if (isProductVendor(r, c)) buckets.vendors.push(it);
+        else if (r.role === 'Speaker target' || has(c.category, 'SPEAKER')) buckets.speakers.push(it);
+        else buckets.attendees.push(it);
+        if (IN_MOTION.has(r.status)) buckets.inprogress.push(it);
+      });
+
+      // suggestions: not already on the list, city-gated, curated + boosted, capped
+      const sugg = [];
+      contacts.forEach(c => {
+        if (onList.has(c.id)) return;
+        const inCity = event.cityKey && (c.metro || []).includes(event.cityKey);
+        if (!inCity && !(opts.includeUnknown && !(c.metro || []).length)) return;
+        if (c.emailStatus === 'bounced') return;
+        const f = fitScore(c);
+        let score = f.s, why = f.why.slice();
+        const pr = pastByContact[c.id];
+        if (pr) { score += 45; why.unshift('was on ' + (eventById[pr.eventId] || {}).name); }
+        sugg.push(mkItem(c, null, score, why, { suggested: true }));
+      });
+      sugg.sort((a, b) => b.score - a.score);
+      buckets.suggested = sugg.slice(0, opts.showAllSuggested ? sugg.length : SUGGEST_CAP);
+      buckets.suggestedTotal = sugg.length;
+    }
+
+    buckets.inprogress.sort((a, b) => b.rank - a.rank || b.score - a.score);
+    ['speakers', 'vendors', 'attendees'].forEach(k => buckets[k].sort((a, b) => b.rank - a.rank || b.score - a.score));
+    return { internal: !!event.internal, buckets, similarPast: pastEvents.map(e => e.name), eventRows };
   }
 
-  return { recommend, historyOf, STATUS_RANK, IN_MOTION };
+  // group a list of items by company name (Notion-style). Returns [{company, items}] preserving order.
+  function groupByCompany(items) {
+    const order = [], map = {};
+    items.forEach(it => {
+      const co = (it.c.companyName || it.c.company || 'Other').trim() || 'Other';
+      if (!map[co]) { map[co] = []; order.push(co); }
+      map[co].push(it);
+    });
+    // companies with more people (and better status) first
+    return order.map(co => ({ company: co, items: map[co], best: Math.max(...map[co].map(i => i.rank)) , size: map[co].length }))
+      .sort((a, b) => b.best - a.best || b.size - a.size || a.company.localeCompare(b.company));
+  }
+
+  return { buildEventView, groupByCompany, STATUS_RANK, IN_MOTION };
 })();

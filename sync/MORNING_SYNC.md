@@ -51,6 +51,26 @@ For every pipeline row on an upcoming event with status CONTACTED / 1ST / 2ND FO
 ## 8. Nearby events scan
 For each internal event dated within the next 60 days whose entry in data/nearby-events.json has `scannedAt` older than 7 days (or missing): run 3-4 web searches, e.g. "<city> wellness events <month year>", "lu.ma <city> wellness <month>", "eventbrite <city> health fitness founders <month year>", plus one tuned to the event type. Keep results within 10 days either side of our date, in or near the same city. Dedupe by name+date. Write items with {name, date, city, venue, url, source, why} and scannedAt.
 
+## 8b. Curated invite seeding for new Willpower events (RULE)
+When a NEW internal (Willpower) event appears in Event Calendar with an empty or near-empty EVENT PIPELINE (fewer than 10 rows):
+- Find similar PAST events: same series word in the name (wellness, lounge, world, sports, catalyst, house, padel, roundtable, holiday, performance) OR same city + same Event Type.
+- Pull the people who were on those past events' pipelines (especially anyone CONFIRMED/attended). These are the proven guests. Example: a new "NYC Wellness Lounge" pulls the May 20 + prior Wellness Lounge guests.
+- Add a curated top set (cap ~40) of additional CONTACTS that fit by city + tier + seniority + category, skipping bounced emails.
+- Write these into EVENT PIPELINE as new rows: Contact linked, Event linked, Status = TO CONTACT, Owner = Bot, Relationship computed (Community if they are WP community, else Known if in CRM). Do NOT duplicate rows that already exist for that event.
+- The dashboard also computes these suggestions live (Suggested invites tab), so seeding is about giving the team a real working list to act on. Cap writes and log what was added to meta alerts. First time on a given event, produce a dry-run list for human review before writing.
+
+## 8c. Luma ingestion (RULE)
+For any event with a Luma URL:
+- Fetch the event's public guest list if available (Luma guest counts / featured guests are sometimes public; the full list often is not). For each attendee found: name, company, title, email if exposed.
+- If the person is not in CONTACTS, add them (SOURCE = LUMA, research company/title/LinkedIn like step 7). 
+- Create or update the EVENT PIPELINE row: for our events, a Luma registration means Status = CONFIRMED (they signed up); for external events, it means they are a confirmed ATTENDEE of that event (this is exactly the "attendees, not our database" list the external event page shows).
+- If Luma does not expose the guest list, log that and skip; the external event page will keep prompting for the data.
+
+## 8d. External vs internal (already enforced in the app)
+- Internal (Willpower) events: the page shows role buckets for people on the list + curated Suggested invites from the database.
+- External events: the page shows ONLY confirmed attendees (pipeline rows, ideally fed by Luma), never a database dump. Keep it that way.
+- Vendor statuses for an event live in that event's vendor tracker (e.g. the Aug 19 "VENDOR TRACKER" db, data source collection://37238388-847e-800b-a4c9-000b83df7d45). build_data.py merges vendor-tracker rows (CONFIRMED vendors, vendor type, gifting-suite vs attendee) into the pipeline. When a new event gets its own vendor tracker, add its raw pull as sync/state/raw/vendors_<event>.json with an eventId field and build_data folds it in. Skip blank tracker rows (no contact and no company).
+
 ## 9. Publish
 1. `python3 sync/build_data.py` (merges raw shards, preserves gmail-derived fields, writes data/*.json).
 2. Apply this run's gmail-derived updates into data/contacts.json and data/pipeline.json (emailStatus, bouncedEmail, leftCompany, lastOutbound/lastInbound, outboundCount, followUp) if build_data did not already carry them.
