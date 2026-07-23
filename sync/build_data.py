@@ -65,17 +65,22 @@ def multi(v):
         return [v]
 
 
-def city_key(raw):
-    if not raw:
+def city_key(*parts):
+    s = ' '.join(p for p in parts if p).upper()
+    if not s.strip():
         return None
-    s = raw.upper()
-    if re.search(r'NEW YORK|NYC|MANHATTAN|BROOKLYN|SOHO|TRIBECA', s):
+    # known venues first (some events have no location text)
+    if re.search(r'PADEL\s*39|LEFTY|OTHER RACQUET|SOHO HOUSE AUSTIN|\bCOTA\b|EASTSIDE', s):
+        return 'AUSTIN'
+    if re.search(r'REMEDY PLACE|CENTER\s*415|SOHO HOUSE NEW YORK|MUSAAFER|THE MALIN|PIER 81|JAVITS', s):
+        return 'NYC'
+    if re.search(r'NEW YORK|NYC|MANHATTAN|BROOKLYN|TRIBECA|FLATIRON', s):
         return 'NYC'
     if re.search(r'LOS ANGELES|\bLA\b|ANAHEIM|PALM SPRINGS|CALIFORNIA', s):
         return 'CALIFORNIA'
     if re.search(r'MIAMI|MIAMI BEACH', s):
         return 'MIAMI'
-    if re.search(r'LAS VEGAS|\bVEGAS\b', s):
+    if re.search(r'LAS VEGAS|\bVEGAS\b|MANDALAY', s):
         return 'LAS VEGAS'
     for k in ('AUSTIN', 'DALLAS', 'HOUSTON', 'SAN ANTONIO', 'CHICAGO'):
         if k in s:
@@ -188,7 +193,7 @@ for r in load_pages('events'):
         'date': r.get('dateStart'),
         'endDate': r.get('dateEnd') or None,
         'locationRaw': r.get('location'),
-        'cityKey': city_key(r.get('location')),
+        'cityKey': city_key(r.get('location'), r.get('venue'), name),
         'venue': r.get('venue'),
         'type': multi(r.get('type')),
         'internal': r.get('internal') == 'Internal Event',

@@ -1,5 +1,5 @@
 (async () => {
-  const { contacts, events, pipeline, nearby, meta, eventById } = await HUB.load();
+  const { contacts, events, pipeline, nearby, meta, eventById, contactById } = await HUB.load();
   const E = HUB.esc;
   const id = new URLSearchParams(location.search).get('e');
   const ev = eventById[id];
@@ -22,12 +22,29 @@
   if (ev.website) links += '<a class="btn" href="' + E(ev.website) + '" target="_blank" rel="noopener">Website</a>';
   document.getElementById('links').innerHTML = links;
 
-  let showAll = false, tab = 'inprogress', q = '';
-  const build = () => SCORE.buildEventView(contacts, pipeline, ev, eventById, events, { includeUnknown: document.getElementById('includeUnknown').checked, showAllSuggested: showAll });
+  // local status marks (this device). Notion stays the shared record; the morning sync reconciles.
+  const OVKEY = 'wp_status_' + ev.id;
+  let overrides = {};
+  try { overrides = JSON.parse(localStorage.getItem(OVKEY) || '{}'); } catch (e) {}
+  const saveOv = () => { try { localStorage.setItem(OVKEY, JSON.stringify(overrides)); } catch (e) {} };
+  const STATUS_OPTS = ['TO CONTACT', 'CONTACTED', '1ST FOLLOW UP', '2ND FOLLOW UP', '3RD FOLLOW UP', 'ENGAGED', 'NEGOTIATIONS', 'CONFIRMED', 'DECLINED', 'BACKUP'];
+
+  const effPipeline = () => {
+    const have = new Set();
+    const out = pipeline.map(r => {
+      if (r.eventId === ev.id && r.contactId) { have.add(r.contactId); if (overrides[r.contactId]) return Object.assign({}, r, { status: overrides[r.contactId] }); }
+      return r;
+    });
+    Object.keys(overrides).forEach(cid => { if (!have.has(cid)) out.push({ contactId: cid, eventId: ev.id, status: overrides[cid], role: 'Attendee target', name: (contactById[cid] || {}).name }); });
+    return out;
+  };
+
+  let showAll = false, tab = 'all', q = '';
+  const build = () => SCORE.buildEventView(contacts, effPipeline(), ev, eventById, events, { includeUnknown: document.getElementById('includeUnknown').checked, showAllSuggested: showAll });
 
   document.getElementById('banners').innerHTML = !ev.internal
     ? '<div class="banner">External event. This list is people confirmed as attending, not our database. ' + (ev.luma ? 'Signups from the <a href="' + E(ev.luma) + '" target="_blank" rel="noopener" style="text-decoration:underline">Luma</a> flow in on each sync.' : 'Add the event\'s Luma link in Notion so signups flow in.') + '</div>'
-    : (!ev.cityKey ? '<div class="banner warn">City "' + E(ev.locationRaw || 'unknown') + '" is not mapped yet, so suggestions use top contacts from all locations.</div>' : HUB.staleBanner(meta));
+    : (!ev.cityKey ? '<div class="banner warn">City not mapped for this event, so suggestions use top contacts from all locations.</div>' : HUB.staleBanner(meta));
 
   const view0 = build();
   const rowsForEvent = view0.eventRows;
@@ -48,15 +65,12 @@
       + '</div>'
     : '<div class="lbls"><span class="k">No list yet. ' + (ev.internal ? 'See suggested invites below.' : 'Add attendees via Luma.') + '</span></div>';
 
-  // follow-ups
   const fu = rowsForEvent.filter(r => r.followUp && r.followUp.needed).sort((a, b) => (b.followUp.daysSince || 0) - (a.followUp.daysSince || 0));
   document.getElementById('followups').innerHTML = fu.length ? '<div class="panel flag"><h2>Follow-up reminders</h2>'
     + fu.slice(0, 12).map(r => { const c = contacts.find(x => x.id === r.contactId) || {};
-        return '<div class="rowline"><span><b>' + E(c.name || r.name) + '</b> <span class="mut">' + E(c.companyName || '') + '</span></span>'
-          + '<span><span class="st" data-s="' + E(r.status) + '">' + E(r.status) + '</span> <span class="mut">' + r.followUp.daysSince + 'd since last email</span> ' + (c.email ? HUB.copyBtn(c.email) : '') + '</span></div>';
+        return '<div class="rowline"><span><b>' + E(c.name || r.name) + '</b> <span class="mut">' + E(c.companyName || '') + '</span></span><span><span class="st" data-s="' + E(r.status) + '">' + E(r.status) + '</span> <span class="mut">' + r.followUp.daysSince + 'd since last email</span> ' + (c.email ? HUB.copyBtn(c.email) : '') + '</span></div>';
       }).join('') + '</div>' : '';
 
-  // nearby
   const near = (nearby[ev.id] && nearby[ev.id].items) || [];
   document.getElementById('nearby').innerHTML = near.length
     ? '<div class="minilist">' + near.map(n => { const d = ev.date && n.date ? Math.round((new Date(n.date) - new Date(ev.date)) / 86400000) : null;
@@ -65,45 +79,55 @@
       }).join('') + '</div>'
     : '<div class="minilist"><div class="empty">Nothing found yet. The scan runs when the event is within 60 days.</div></div>';
 
+  const statusSelect = it => {
+    const cur = it.status || 'TO CONTACT';
+    if (!it.c.id) return it.status ? '<span class="st" data-s="' + E(it.status) + '">' + E(it.status) + '</span>' : '';
+    return '<select class="stsel" data-s="' + E(cur) + '" data-cid="' + E(it.c.id) + '">'
+      + STATUS_OPTS.map(o => '<option' + (o === cur ? ' selected' : '') + '>' + o + '</option>').join('') + '</select>';
+  };
+  const showWhy = () => tab === 'suggested';
   const personRow = it => {
-    const c = it.c, st = it.status;
-    const why = (it.why || []).slice(0, 2).map(E).join(' &middot; ');
+    const c = it.c;
+    const why = showWhy() ? (it.why || []).slice(0, 2).map(E).join(' &middot; ') : '';
     return '<div class="prow">'
-      + '<div class="who"><div class="nm">' + E(c.name || '') + (c.linkedin ? ' <a class="li" href="' + E(c.linkedin) + '" target="_blank" rel="noopener">in</a>' : '') + '</div><div class="t">' + E(c.title || '') + '</div></div>'
+      + '<div class="who"><div class="nm">' + E(c.name || '') + (c.linkedin ? ' <a class="li" href="' + E(c.linkedin) + '" target="_blank" rel="noopener">in</a>' : '') + '</div><div class="t">' + E(c.title || '') + '</div>' + (why ? '<div class="why">' + why + '</div>' : '') + '</div>'
+      + '<div class="co">' + E(c.companyName || c.company || '') + '</div>'
+      + '<div>' + statusSelect(it) + '</div>'
       + '<div>' + HUB.emailCell(c) + '</div>'
-      + '<div>' + (st ? '<span class="st" data-s="' + E(st) + '">' + E(st) + '</span>' : '<span class="st" data-s="NEW">suggested</span>') + '</div>'
-      + '<div class="role">' + (why || '') + '</div>'
       + '</div>';
   };
-  const renderGroups = items => {
-    if (!items.length) return '<div class="cogroup"><div class="empty">No one here yet.</div></div>';
-    return SCORE.groupByCompany(items).map(g => {
-      const ind = g.items[0] && g.items[0].c.industry;
-      return '<div class="cogroup"><div class="cohead"><span class="co">' + E(g.company) + '</span><span class="n">' + g.size + '</span>'
-        + (ind ? '<span class="ind">' + E(ind) + '</span>' : '') + '</div>' + g.items.map(personRow).join('') + '</div>';
-    }).join('');
+  const renderList = items => {
+    if (!items.length) return '<div class="plist"><div class="empty">No one here yet.</div></div>';
+    return '<div class="plist"><div class="phead-row"><span>Name / title</span><span>Company</span><span>Status</span><span>Email</span></div>'
+      + items.map(personRow).join('') + '</div>';
   };
 
   const render = () => {
     const v = build(), B = v.buckets;
     const defs = v.internal
-      ? [['inprogress', 'In progress'], ['speakers', 'Speakers'], ['vendors', 'Vendors'], ['attendees', 'Attendees'], ['suggested', 'Suggested invites']]
-      : [['attendees', 'Attendees'], ['inprogress', 'Confirmed / in motion']];
+      ? [['all', 'All contacts'], ['inprogress', 'In progress'], ['speakers', 'Speakers'], ['vendors', 'Vendors'], ['attendees', 'Attendees'], ['suggested', 'Suggested invites']]
+      : [['all', 'All attendees'], ['inprogress', 'Confirmed / in motion']];
     if (!defs.some(([k]) => k === tab)) tab = defs[0][0];
     document.getElementById('tabs').innerHTML = defs.map(([k, l]) =>
       '<button class="' + (tab === k ? 'on' : '') + '" data-t="' + k + '">' + l + '<span class="cnt">' + (B[k] || []).length + '</span></button>').join('');
     document.querySelectorAll('#tabs button').forEach(x => x.onclick = () => { tab = x.dataset.t; render(); });
 
-    let items = B[tab] || [];
+    let items = (B[tab] || []).slice();
     if (q) { const s = q.toLowerCase(); items = items.filter(i => [i.c.name, i.c.companyName, i.c.title, i.c.email].some(x => (x || '').toLowerCase().includes(s))); }
 
     let head = '';
     if (tab === 'suggested' && v.internal) head = '<div class="banner">Curated from your database and people who came to similar past events. Showing ' + B.suggested.length + ' of ' + B.suggestedTotal + '. <a href="#" id="toggleAll" style="text-decoration:underline">' + (showAll ? 'show top matches only' : 'show all') + '</a></div>';
-    else if (tab === 'vendors') head = '<div class="banner">Product partners (gifting suite, activations, food and drink). Confirmed first.</div>';
-    else if (tab === 'attendees' && v.internal) head = '<div class="banner">Guests attending, not giving product.</div>';
+    else if (tab === 'vendors') head = '<div class="banner">Product partners: gifting suite, activations, food and drink.</div>';
+    else if (tab === 'all') head = '<div class="banner">Everyone for this event. Set each person\'s status with the dropdown. Marks save on this device; Notion stays the shared record.</div>';
     document.getElementById('listHead').innerHTML = head;
-    document.getElementById('groups').innerHTML = renderGroups(items);
+    document.getElementById('groups').innerHTML = renderList(items);
+
     const t = document.getElementById('toggleAll'); if (t) t.onclick = e => { e.preventDefault(); showAll = !showAll; render(); };
+    document.querySelectorAll('select.stsel').forEach(sel => sel.onchange = () => {
+      const cid = sel.dataset.cid, val = sel.value;
+      if (val === 'TO CONTACT') delete overrides[cid]; else overrides[cid] = val;
+      saveOv(); render();
+    });
   };
   document.getElementById('search').oninput = e => { q = e.target.value; render(); };
   document.getElementById('includeUnknown').onchange = render;

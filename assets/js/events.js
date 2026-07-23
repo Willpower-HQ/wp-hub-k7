@@ -14,7 +14,7 @@
   pipeline.forEach(r => { (rowsByEvent[r.eventId] = rowsByEvent[r.eventId] || []).push(r); });
 
   const upcoming = events.filter(isUpcoming).sort((a, c) => a.date.localeCompare(c.date));
-  const past = events.filter(e => !isUpcoming(e)).sort((a, c) => (c.date || '').localeCompare(a.date || ''));
+  const past = events.filter(e => !isUpcoming(e) && e.internal).sort((a, c) => (c.date || '').localeCompare(a.date || ''));
   const wp = upcoming.filter(e => e.internal);
   const ext = upcoming.filter(e => !e.internal);
 

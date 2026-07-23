@@ -114,6 +114,15 @@ const SCORE = (() => {
 
     buckets.inprogress.sort((a, b) => b.rank - a.rank || b.score - a.score);
     ['speakers', 'vendors', 'attendees'].forEach(k => buckets[k].sort((a, b) => b.rank - a.rank || b.score - a.score));
+
+    // "All" = every unique person for this event (on-list + suggestions), most-advanced first
+    const seen = new Set(), all = [];
+    ['speakers', 'vendors', 'attendees', 'suggested'].forEach(k => (buckets[k] || []).forEach(it => {
+      const key = it.c.id || ('n:' + (it.c.name || ''));
+      if (seen.has(key)) return; seen.add(key); all.push(it);
+    }));
+    all.sort((a, b) => b.rank - a.rank || b.score - a.score);
+    buckets.all = all;
     return { internal: !!event.internal, buckets, similarPast: pastEvents.map(e => e.name), eventRows };
   }
 
