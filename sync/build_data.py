@@ -264,6 +264,8 @@ for vf in sorted(glob.glob(os.path.join(RAW, 'vendors_*.json'))):
                 p['vendorType'] = vtype
             if r.get('logistics'):
                 p['logistics'] = r.get('logistics')
+            if r.get('product'):
+                p['product'] = r.get('product')
         else:
             name = (contact_by_id.get(cid, {}).get('name') if cid else None) or (co['name'] if co else None) or 'Unknown vendor'
             row = {
@@ -272,7 +274,7 @@ for vf in sorted(glob.glob(os.path.join(RAW, 'vendors_*.json'))):
                 'topTarget': r.get('topTarget') == '__YES__', 'speakerAngle': None,
                 'notes': (r.get('notes') or None), 'sentProduct': False, 'lastOutbound': None,
                 'lastInbound': None, 'outboundCount': 0, 'followUp': {'needed': False},
-                'vendorType': vtype or None, 'logistics': r.get('logistics'),
+                'vendorType': vtype or None, 'logistics': r.get('logistics'), 'product': r.get('product'),
                 'companyName': co['name'] if co else None, 'source': 'vendor-tracker',
             }
             pipeline.append(row)

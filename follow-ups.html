@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>Event · Willpower Outreach HQ</title>
+<title>Follow-ups · Willpower Outreach HQ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
   <a class="brand" href="index.html"><img class="logo" src="assets/img/willpower-logo.png" alt="Willpower"><span class="tag">Outreach HQ</span></a>
   <div class="nav">
     <a href="index.html">Events</a>
-    <a href="follow-ups.html">Follow-ups</a>
+    <a href="follow-ups.html" class="on">Follow-ups</a>
     <a href="events-map.html">City Scout</a>
     <a href="contacts.html">Contacts</a>
     <a href="context.html">Context</a>
@@ -24,35 +24,19 @@
 </div></div>
 
 <div class="wrap">
-  <div class="ehero">
-    <div class="kicker"><a href="index.html" style="color:var(--yellow)">&larr; All events</a><span id="countdown"></span></div>
-    <h1 id="title">Loading...</h1>
-    <div class="facts" id="facts"></div>
-    <div class="links" id="links"></div>
-    <div class="pbar" id="pbar"></div>
+  <div class="phead">
+    <div class="eyebrow">Today</div>
+    <h1>Who to chase</h1>
+    <div class="sub">Everyone we have contacted for an upcoming event and are still waiting on, oldest first. Hit Draft to send the next nudge.</div>
+    <div class="summary" id="summary"></div>
   </div>
-
   <div id="banners"></div>
-  <div id="followups"></div>
-
-  <div class="tabs" id="tabs"></div>
-  <div class="controls">
-    <input type="text" class="search" id="search" placeholder="Search name, company, title...">
-    <select id="statusFilter"><option value="">Any status</option></select>
-    <label class="tog"><input type="checkbox" id="includeUnknown"> Include contacts with no listed city</label>
-  </div>
-  <div id="listHead"></div>
-  <div id="groups"><div class="empty">Loading...</div></div>
-
-  <div class="sectionrow"><h2>Other events around this date</h2><span class="note">good to scout, or for Bill to attend</span></div>
-  <div id="nearby"></div>
-
+  <div id="body"><div class="empty">Loading...</div></div>
   <div class="foot" id="foot"></div>
 </div>
+
 <script src="assets/js/data.js"></script>
-<script src="assets/js/api.js"></script>
 <script src="assets/js/draft.js"></script>
-<script src="assets/js/score.js"></script>
-<script src="assets/js/event.js"></script>
+<script src="assets/js/follow-ups.js"></script>
 </body>
 </html>

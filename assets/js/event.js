@@ -91,19 +91,25 @@
   };
   const detailOf = it => {
     if (tab === 'suggested') return (it.why || []).slice(0, 2).map(E).join(' &middot; ');
+    const r = it.row || {}, parts = [];
     const vt = it.vendorType ? (Array.isArray(it.vendorType) ? it.vendorType : [it.vendorType]) : null;
-    if (vt && vt.length) return vt.map(E).join(', ');
-    if (it.row && it.row.speakerAngle) return E(it.row.speakerAngle);
-    if (it.row && it.row.relationship) return E(it.row.relationship);
+    if (vt) parts.push(...vt);
+    if (r.product) parts.push(r.product);
+    if (r.logistics) parts.push(r.logistics);
+    if (parts.length) return parts.map(E).join(' &middot; ');
+    if (r.speakerAngle) return E(r.speakerAngle);
+    if (r.relationship) return E(r.relationship);
     return '';
   };
+  const draftBtn = it => (it.c.id && it.c.email && it.c.emailStatus === 'ok')
+    ? ' <button class="draftbtn" data-cid="' + E(it.c.id) + '" data-kind="' + (window.WP_DRAFT ? WP_DRAFT.kindFor(it) : 'invite') + '">Draft</button>' : '';
   const personRow = it => {
     const c = it.c, detail = detailOf(it);
     return '<div class="prow">'
       + '<div class="who"><div class="nm">' + E(c.name || '') + (c.linkedin ? ' <a class="li" href="' + E(c.linkedin) + '" target="_blank" rel="noopener">in</a>' : '') + '</div><div class="t">' + E(c.title || '') + '</div>' + (detail ? '<div class="why">' + detail + '</div>' : '') + '</div>'
       + '<div class="co" data-label="Company">' + E(c.companyName || c.company || '') + '</div>'
       + '<div data-label="Status">' + statusSelect(it) + '</div>'
-      + '<div data-label="Email">' + HUB.emailCell(c) + '</div>'
+      + '<div data-label="Email">' + HUB.emailCell(c) + draftBtn(it) + '</div>'
       + '</div>';
   };
   const renderList = items => {
@@ -112,17 +118,28 @@
       + items.map(personRow).join('') + '</div>';
   };
 
+  const isSpk = i => (i.row && i.row.role === 'Speaker target') || (i.c.category || []).some(x => /SPEAKER/i.test(x));
+  const isVen = i => i.row && (i.row.role === 'Vendor' || i.row.role === 'Sponsor guest' || i.row.vendorType);
+  function copyRoster(items) {
+    const line = i => (i.c.name || '') + (i.c.companyName ? ' - ' + i.c.companyName : '') + (i.row && i.row.product ? ' (' + i.row.product + ')' : '') + (i.c.email ? '  ' + i.c.email : '');
+    const spk = items.filter(isSpk), ven = items.filter(i => !isSpk(i) && isVen(i)), att = items.filter(i => !isSpk(i) && !isVen(i));
+    const sec = (t, arr) => arr.length ? t + ' (' + arr.length + ')\n' + arr.map(line).join('\n') + '\n\n' : '';
+    const txt = 'CONFIRMED - ' + ev.name + ' - ' + HUB.fmtDate(ev.date) + '\n\n' + sec('SPEAKERS', spk) + sec('VENDORS', ven) + sec('GUESTS', att);
+    navigator.clipboard.writeText(txt).then(() => { const cr = document.getElementById('copyRoster'); if (cr) cr.textContent = 'Copied'; });
+  }
   const render = () => {
     const v = build(), B = v.buckets;
+    const confirmedItems = (B.all || []).filter(i => i.status === 'CONFIRMED');
     const defs = v.internal
-      ? [['all', 'All contacts'], ['inprogress', 'In progress'], ['speakers', 'Speakers'], ['vendors', 'Vendors'], ['attendees', 'Attendees'], ['suggested', 'Suggested invites']]
-      : [['all', 'All attendees'], ['inprogress', 'Confirmed / in motion']];
+      ? [['all', 'All contacts'], ['inprogress', 'In progress'], ['confirmed', 'Confirmed'], ['speakers', 'Speakers'], ['vendors', 'Vendors'], ['attendees', 'Attendees'], ['suggested', 'Suggested invites']]
+      : [['all', 'All attendees'], ['confirmed', 'Confirmed'], ['inprogress', 'In motion']];
     if (!defs.some(([k]) => k === tab)) tab = defs[0][0];
+    const cnt = k => k === 'confirmed' ? confirmedItems.length : (B[k] || []).length;
     document.getElementById('tabs').innerHTML = defs.map(([k, l]) =>
-      '<button class="' + (tab === k ? 'on' : '') + '" data-t="' + k + '">' + l + '<span class="cnt">' + (B[k] || []).length + '</span></button>').join('');
+      '<button class="' + (tab === k ? 'on' : '') + '" data-t="' + k + '">' + l + '<span class="cnt">' + cnt(k) + '</span></button>').join('');
     document.querySelectorAll('#tabs button').forEach(x => x.onclick = () => { tab = x.dataset.t; render(); });
 
-    let items = (B[tab] || []).slice();
+    let items = (tab === 'confirmed' ? confirmedItems : (B[tab] || [])).slice();
     if (q) { const s = q.toLowerCase(); items = items.filter(i => [i.c.name, i.c.companyName, i.c.title, i.c.email].some(x => (x || '').toLowerCase().includes(s))); }
     const sf = document.getElementById('statusFilter').value;
     if (sf) items = items.filter(i => (i.status || 'TO CONTACT') === sf);
@@ -130,11 +147,17 @@
     let head = '';
     if (tab === 'suggested' && v.internal) head = '<div class="banner">Curated from your database and people who came to similar past events. Showing ' + B.suggested.length + ' of ' + B.suggestedTotal + '. <a href="#" id="toggleAll" style="text-decoration:underline">' + (showAll ? 'show top matches only' : 'show all') + '</a></div>';
     else if (tab === 'vendors') head = '<div class="banner">Product partners: gifting suite, activations, food and drink.</div>';
-    else if (tab === 'all') head = '<div class="banner">Everyone for this event. Set each person\'s status with the dropdown. Marks save on this device; Notion stays the shared record.</div>';
+    else if (tab === 'confirmed') {
+      const sp = confirmedItems.filter(isSpk).length, ve = confirmedItems.filter(i => !isSpk(i) && isVen(i)).length, at = confirmedItems.length - sp - ve;
+      head = '<div class="banner">Who is locked in: <b>' + confirmedItems.length + '</b> confirmed &middot; ' + sp + ' speakers &middot; ' + ve + ' vendors &middot; ' + at + ' guests. <a href="#" id="copyRoster" style="text-decoration:underline">Copy roster</a></div>';
+    }
+    else if (tab === 'all') head = '<div class="banner">Everyone for this event. Set each person\'s status with the dropdown.</div>';
     document.getElementById('listHead').innerHTML = head;
     document.getElementById('groups').innerHTML = renderList(items);
 
     const t = document.getElementById('toggleAll'); if (t) t.onclick = e => { e.preventDefault(); showAll = !showAll; render(); };
+    const cr = document.getElementById('copyRoster'); if (cr) cr.onclick = e => { e.preventDefault(); copyRoster(confirmedItems); };
+    document.querySelectorAll('.draftbtn').forEach(b => b.onclick = e => { e.stopPropagation(); const c = contactById[b.dataset.cid]; if (c) WP_DRAFT.open(c, ev, b.dataset.kind); });
     document.querySelectorAll('select.stsel').forEach(sel => sel.onchange = () => {
       const cid = sel.dataset.cid, pid = sel.dataset.pid, val = sel.value, nm = (contactById[cid] || {}).name;
       if (val === 'TO CONTACT') delete overrides[cid]; else overrides[cid] = val;
