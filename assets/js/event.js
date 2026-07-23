@@ -22,11 +22,14 @@
   if (ev.website) links += '<a class="btn" href="' + E(ev.website) + '" target="_blank" rel="noopener">Website</a>';
   document.getElementById('links').innerHTML = links;
 
-  // Status marks set on the site. Saved on this device; Notion stays the shared record.
+  // Status marks. If the Notion write path is live (Netlify function configured), edits save to Notion
+  // and are shared with everyone; otherwise they fall back to this device (localStorage).
   const OVKEY = 'wp_status_' + ev.id;
   let overrides = {};
   try { overrides = JSON.parse(localStorage.getItem(OVKEY) || '{}'); } catch (e) {}
   const saveOv = () => { try { localStorage.setItem(OVKEY, JSON.stringify(overrides)); } catch (e) {} };
+  let pidMap = {};       // contactId -> EVENT PIPELINE page id (from Notion)
+  let notionMode = false; // true once the function confirms it is configured
   const STATUS_OPTS = ['TO CONTACT', 'CONTACTED', '1ST FOLLOW UP', '2ND FOLLOW UP', '3RD FOLLOW UP', 'ENGAGED', 'NEGOTIATIONS', 'CONFIRMED', 'DECLINED', 'BACKUP'];
 
   const effPipeline = () => {
@@ -82,7 +85,8 @@
   const statusSelect = it => {
     const cur = it.status || 'TO CONTACT';
     if (!it.c.id) return it.status ? '<span class="st" data-s="' + E(it.status) + '">' + E(it.status) + '</span>' : '';
-    return '<select class="stsel" data-s="' + E(cur) + '" data-cid="' + E(it.c.id) + '">'
+    const pid = pidMap[it.c.id] || (it.row && it.row.id) || '';
+    return '<select class="stsel" data-s="' + E(cur) + '" data-cid="' + E(it.c.id) + '" data-pid="' + E(pid) + '">'
       + STATUS_OPTS.map(o => '<option' + (o === cur ? ' selected' : '') + '>' + o + '</option>').join('') + '</select>';
   };
   const showWhy = () => tab === 'suggested';
@@ -124,13 +128,27 @@
 
     const t = document.getElementById('toggleAll'); if (t) t.onclick = e => { e.preventDefault(); showAll = !showAll; render(); };
     document.querySelectorAll('select.stsel').forEach(sel => sel.onchange = () => {
-      const cid = sel.dataset.cid, val = sel.value;
+      const cid = sel.dataset.cid, pid = sel.dataset.pid, val = sel.value, nm = (contactById[cid] || {}).name;
       if (val === 'TO CONTACT') delete overrides[cid]; else overrides[cid] = val;
-      saveOv(); render();
+      if (notionMode) {
+        WP_API.setStatus({ eventId: ev.id, contactId: cid, pipelineId: pid || undefined, status: val, name: nm }).then(ok => {
+          if (ok && !pid) WP_API.getStatuses(ev.id).then(m => { if (m) { pidMap = {}; Object.entries(m).forEach(([c, v]) => pidMap[c] = v.pipelineId); } });
+        });
+      } else { saveOv(); }
+      render();
     });
   };
   document.getElementById('search').oninput = e => { q = e.target.value; render(); };
   document.getElementById('includeUnknown').onchange = render;
   render();
+
+  // if the Notion write path is live, load current shared statuses and use those instead of local marks
+  if (window.WP_API) WP_API.getStatuses(ev.id).then(map => {
+    if (!map) return;
+    notionMode = true; overrides = {}; pidMap = {};
+    Object.entries(map).forEach(([cid, v]) => { pidMap[cid] = v.pipelineId; if (v.status && v.status !== 'TO CONTACT') overrides[cid] = v.status; });
+    document.getElementById('foot').textContent = 'Live shared board (saves to Notion). ' + (meta.lastSyncAt ? 'Data refreshed ' + new Date(meta.lastSyncAt).toLocaleString() : '');
+    render();
+  });
   document.getElementById('foot').textContent = meta.lastSyncAt ? 'Data refreshed ' + new Date(meta.lastSyncAt).toLocaleString() : '';
 })();

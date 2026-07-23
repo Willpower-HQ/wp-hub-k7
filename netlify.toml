@@ -1,0 +1,14 @@
+# Netlify config: serve the static site from the repo root, run the status function.
+[build]
+  publish = "."
+  functions = "netlify/functions"
+  command = ""
+
+[functions]
+  node_bundler = "esbuild"
+
+# Friendly path: /api/status -> the function
+[[redirects]]
+  from = "/api/status"
+  to = "/.netlify/functions/status"
+  status = 200
