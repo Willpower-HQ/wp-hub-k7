@@ -1,0 +1,15 @@
+{
+  "domains": [
+    "drinkwillpower.com", "calendly.com", "lu.ma", "luma-mail.com", "docusign.net", "docusign.com",
+    "shopify.com", "squarespace.com", "stripe.com", "google.com", "github.com", "notion.so",
+    "intuit.com", "quickbooks.com", "zoom.us", "canva.com", "figma.com", "eventbrite.com",
+    "substack.com", "mailchimp.com", "klaviyo.com", "amazonses.com", "anthropic.com", "openai.com",
+    "apple.com", "icloud-mail.com", "linkedin.com", "instagram.com", "meta.com", "facebookmail.com"
+  ],
+  "prefixes": [
+    "no-reply", "noreply", "no_reply", "donotreply", "do-not-reply", "notifications", "notification",
+    "support", "help", "billing", "invoice", "receipts", "mailer-daemon", "postmaster", "bounce",
+    "newsletter", "news", "marketing", "automated", "alert", "alerts", "system", "admin@", "team@"
+  ],
+  "note": "Recipients matching these are never auto-added to the CRM. Edit freely; the morning sync reads this file each run."
+}

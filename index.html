@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Willpower Outreach HQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/hub.css">
+<link rel="icon" href="assets/img/willpower-bird.png">
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="eyebrow">Willpower Outreach HQ</div>
+      <h1>Events</h1>
+    </div>
+    <div class="nav">
+      <a href="index.html" class="on">Events</a>
+      <a href="contacts.html">All Contacts</a>
+      <button class="primary" onclick="document.getElementById('addModal').classList.add('open')">+ Add event</button>
+    </div>
+  </div>
+  <p class="subtitle">Pick an event to see who to reach out to: speakers, vendors and cold invites, with live outreach status. New here? Just click your event and work the lists.</p>
+
+  <div id="banners"></div>
+  <div class="stats" id="stats"></div>
+
+  <div class="sechdr">Upcoming events</div>
+  <div class="cards" id="upcoming"><div class="empty">Loading...</div></div>
+
+  <div class="sechdr">Past events <span class="sub">click to review who came, spoke and sent product</span></div>
+  <div class="cards" id="past"></div>
+
+  <div class="footer" id="foot"></div>
+</div>
+
+<div class="modal" id="addModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="box">
+    <h2>Add an event</h2>
+    <p style="font-size:14px">Events live in the Notion Event Calendar. Add a row there and it appears here after the next morning sync (about 7am), or ask Claude to run a refresh now.</p>
+    <ol>
+      <li>Open the <a href="https://www.notion.so/17a38388847e80edb69bcc3029eeae56" target="_blank" rel="noopener">Event Calendar in Notion</a></li>
+      <li>Add a row with the three required fields: <b>Event Name</b>, <b>Date</b> and <b>Event Location</b> (city)</li>
+      <li>Optional but helpful: Venue, Event Type, Website or Luma link</li>
+    </ol>
+    <button class="primary" onclick="window.open('https://www.notion.so/17a38388847e80edb69bcc3029eeae56','_blank')">Open Event Calendar</button>
+    <button onclick="document.getElementById('addModal').classList.remove('open')">Close</button>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/events.js"></script>
+</body>
+</html>

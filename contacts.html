@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>All Contacts · Willpower Outreach HQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/hub.css">
+<link rel="icon" href="assets/img/willpower-bird.png">
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="eyebrow">Willpower Outreach HQ</div>
+      <h1>All Contacts</h1>
+    </div>
+    <div class="nav">
+      <a href="index.html">Events</a>
+      <a href="contacts.html" class="on">All Contacts</a>
+    </div>
+  </div>
+  <p class="subtitle">Everyone in the database. Filter by city or category, click a row for full details and event history.</p>
+
+  <div id="banners"></div>
+  <div class="stats" id="stats"></div>
+
+  <div class="controls">
+    <input type="text" class="search" id="search" placeholder="Search name, company, title, email...">
+    <select id="cityF"><option value="">All cities</option></select>
+    <select id="catF"><option value="">All categories</option></select>
+    <select id="statusF"><option value="">All outreach statuses</option></select>
+    <select id="tierF"><option value="">All tiers</option></select>
+    <label class="tog"><input type="checkbox" id="bouncedF"> Bounced only</label>
+    <label class="tog"><input type="checkbox" id="noEmailF"> Missing email</label>
+  </div>
+
+  <div class="tablecard">
+    <table>
+      <thead><tr>
+        <th style="width:15%">Name</th><th style="width:15%">Company</th><th style="width:18%">Title</th>
+        <th style="width:130px">City</th><th>Category</th><th style="width:60px">Links</th>
+        <th style="width:220px">Email</th><th style="width:130px">Status</th>
+      </tr></thead>
+      <tbody id="rows"><tr><td colspan="8" class="empty">Loading...</td></tr></tbody>
+    </table>
+  </div>
+  <div class="pager" id="pager"></div>
+  <div class="footer" id="foot"></div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/contacts.js"></script>
+</body>
+</html>

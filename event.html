@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Event · Willpower Outreach HQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/hub.css">
+<link rel="icon" href="assets/img/willpower-bird.png">
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="eyebrow" id="crumb">Willpower Outreach HQ</div>
+      <h1 id="title">Loading...</h1>
+      <div class="subtitle" id="sub"></div>
+    </div>
+    <div class="nav">
+      <a href="index.html">Events</a>
+      <a href="contacts.html">All Contacts</a>
+    </div>
+  </div>
+
+  <div id="banners"></div>
+  <div class="stats" id="stats"></div>
+  <div id="followups"></div>
+  <div id="nearby"></div>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="controls">
+    <input type="text" class="search" id="search" placeholder="Search name, company, title...">
+    <label class="tog"><input type="checkbox" id="includeUnknown"> Include contacts with no listed city</label>
+  </div>
+  <div class="tablecard">
+    <table>
+      <thead><tr>
+        <th style="width:15%">Name</th><th style="width:15%">Company</th><th style="width:19%">Title</th>
+        <th style="width:60px">Links</th><th style="width:230px">Email</th><th style="width:150px">Status</th><th>Why them</th>
+      </tr></thead>
+      <tbody id="rows"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+    </table>
+  </div>
+  <div class="pager" id="pager"></div>
+  <div class="footer" id="foot"></div>
+</div>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/score.js"></script>
+<script src="assets/js/event.js"></script>
+</body>
+</html>
