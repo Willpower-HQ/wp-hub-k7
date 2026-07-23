@@ -227,6 +227,50 @@ for r in load_pages('pipeline'):
         'followUp': prev.get('followUp', {'needed': False}),
     })
 
+# ---- merge per-event vendor tracker (statuses + vendor type) into pipeline ----
+STATUS_RANK = {'CONFIRMED': 100, 'NEGOTIATIONS': 90, 'ENGAGED': 85, 'FINAL REMINDER SENT': 70,
+               '3RD FOLLOW UP': 66, '2ND FOLLOW UP': 62, '1ST FOLLOW UP': 58, 'INTERESTED': 55,
+               'CONTACTED': 50, 'BACKUP': 30, 'BOUNCED EMAIL': 10, 'TO CONTACT': 0, 'DECLINED': -10}
+ROLE_FROM_CAT = {'VENDOR': 'Vendor', 'SPEAKER': 'Speaker target', 'ATTENDEE': 'Attendee target'}
+contact_by_id = {c['id']: c for c in contacts}
+pipe_by_key = {(p['contactId'], p['eventId']): p for p in pipeline if p['contactId']}
+
+for vf in sorted(glob.glob(os.path.join(RAW, 'vendors_*.json'))):
+    doc = json.load(open(vf))
+    ev_id = page_id(doc.get('eventId'))
+    for r in doc.get('results', []):
+        cats = multi(r.get('category'))
+        role = next((ROLE_FROM_CAT[c] for c in cats if c in ROLE_FROM_CAT), 'Attendee target')
+        status = r.get('status') or 'TO CONTACT'
+        vtype = multi(r.get('vendorType'))
+        cid = (rel_ids(r.get('contactRel')) or [None])[0]
+        coid = (rel_ids(r.get('companyRel')) or [None])[0]
+        co = companies.get(coid) if coid else None
+        if cid and (cid, ev_id) in pipe_by_key:
+            p = pipe_by_key[(cid, ev_id)]
+            if STATUS_RANK.get(status, 0) > STATUS_RANK.get(p.get('status'), 0):
+                p['status'] = status
+            if 'VENDOR' in cats:
+                p['role'] = 'Vendor'
+            if vtype:
+                p['vendorType'] = vtype
+            if r.get('logistics'):
+                p['logistics'] = r.get('logistics')
+        else:
+            name = (contact_by_id.get(cid, {}).get('name') if cid else None) or (co['name'] if co else None) or 'Unknown vendor'
+            row = {
+                'id': page_id(r.get('url')), 'name': name, 'contactId': cid, 'eventId': ev_id,
+                'role': role, 'status': status, 'relationship': None, 'owner': None,
+                'topTarget': r.get('topTarget') == '__YES__', 'speakerAngle': None,
+                'notes': (r.get('notes') or None), 'sentProduct': False, 'lastOutbound': None,
+                'lastInbound': None, 'outboundCount': 0, 'followUp': {'needed': False},
+                'vendorType': vtype or None, 'logistics': r.get('logistics'),
+                'companyName': co['name'] if co else None, 'source': 'vendor-tracker',
+            }
+            pipeline.append(row)
+            if cid:
+                pipe_by_key[(cid, ev_id)] = row
+
 # ---- write ----
 def dump(fname, obj):
     with open(os.path.join(DATA, fname), 'w') as f:

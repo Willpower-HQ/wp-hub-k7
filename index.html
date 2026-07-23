@@ -7,48 +7,58 @@
 <title>Willpower Outreach HQ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/hub.css">
 <link rel="icon" href="assets/img/willpower-bird.png">
 </head>
 <body>
+<div class="masthead"><div class="wrap">
+  <a class="brand" href="index.html"><img src="assets/img/willpower-bird.png" alt="">Willpower <span class="tag">Outreach HQ</span></a>
+  <div class="nav">
+    <a href="index.html" class="on">Events</a>
+    <a href="events-map.html">City Scout</a>
+    <a href="contacts.html">Contacts</a>
+  </div>
+</div></div>
+
 <div class="wrap">
-  <div class="top">
-    <div>
-      <div class="eyebrow">Willpower Outreach HQ</div>
-      <h1>Events</h1>
-    </div>
-    <div class="nav">
-      <a href="index.html" class="on">Events</a>
-      <a href="contacts.html">All Contacts</a>
-      <button class="primary" onclick="document.getElementById('addModal').classList.add('open')">+ Add event</button>
+  <div class="phead">
+    <div class="eyebrow">Outreach HQ</div>
+    <h1>Upcoming Events</h1>
+    <div class="sub">Pick an event to see who to reach out to, who is already confirmed, and who still needs a follow-up.</div>
+    <div class="actions">
+      <button class="primary" onclick="document.getElementById('addModal').classList.add('open')">Add an event</button>
+      <a class="btn" href="events-map.html">Scout events near ours</a>
     </div>
   </div>
-  <p class="subtitle">Pick an event to see who to reach out to: speakers, vendors and cold invites, with live outreach status. New here? Just click your event and work the lists.</p>
 
   <div id="banners"></div>
-  <div class="stats" id="stats"></div>
 
-  <div class="sechdr">Upcoming events</div>
-  <div class="cards" id="upcoming"><div class="empty">Loading...</div></div>
+  <div class="sectionrow"><h2>Willpower events</h2><span class="note" id="wpcount"></span></div>
+  <div class="events" id="wpEvents"><div class="empty">Loading...</div></div>
 
-  <div class="sechdr">Past events <span class="sub">click to review who came, spoke and sent product</span></div>
-  <div class="cards" id="past"></div>
+  <div class="sectionrow"><h2>External events we are tracking</h2><span class="note">industry moments to attend or scout</span></div>
+  <div class="minilist" id="extEvents"></div>
 
-  <div class="footer" id="foot"></div>
+  <div class="sectionrow"><h2>Past events</h2><span class="note">who came, who spoke, who sent product</span></div>
+  <div class="minilist" id="pastEvents"></div>
+
+  <div class="foot" id="foot"></div>
 </div>
 
 <div class="modal" id="addModal" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="box">
     <h2>Add an event</h2>
-    <p style="font-size:14px">Events live in the Notion Event Calendar. Add a row there and it appears here after the next morning sync (about 7am), or ask Claude to run a refresh now.</p>
+    <p style="font-size:14px;color:var(--ink-2)">Events live in the Notion Event Calendar. Add a row there and it shows up here after the next morning sync, or ask Claude to refresh now.</p>
     <ol>
-      <li>Open the <a href="https://www.notion.so/17a38388847e80edb69bcc3029eeae56" target="_blank" rel="noopener">Event Calendar in Notion</a></li>
-      <li>Add a row with the three required fields: <b>Event Name</b>, <b>Date</b> and <b>Event Location</b> (city)</li>
-      <li>Optional but helpful: Venue, Event Type, Website or Luma link</li>
+      <li>Open the <a href="https://www.notion.so/17a38388847e80edb69bcc3029eeae56" target="_blank" rel="noopener" style="text-decoration:underline">Event Calendar in Notion</a></li>
+      <li>Add a row with the three required fields: <b>Event Name</b>, <b>Date</b>, and <b>Event Location</b> (city)</li>
+      <li>Optional: Venue, Event Type, Website or Luma link</li>
     </ol>
-    <button class="primary" onclick="window.open('https://www.notion.so/17a38388847e80edb69bcc3029eeae56','_blank')">Open Event Calendar</button>
-    <button onclick="document.getElementById('addModal').classList.remove('open')">Close</button>
+    <div class="actions">
+      <button class="primary" onclick="window.open('https://www.notion.so/17a38388847e80edb69bcc3029eeae56','_blank')">Open Event Calendar</button>
+      <button onclick="document.getElementById('addModal').classList.remove('open')">Close</button>
+    </div>
   </div>
 </div>
 
