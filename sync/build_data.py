@@ -71,7 +71,13 @@ def city_key(raw):
     s = raw.upper()
     if re.search(r'NEW YORK|NYC|MANHATTAN|BROOKLYN|SOHO|TRIBECA', s):
         return 'NYC'
-    for k in ('AUSTIN', 'DALLAS', 'HOUSTON', 'SAN ANTONIO', 'MIAMI'):
+    if re.search(r'LOS ANGELES|\bLA\b|ANAHEIM|PALM SPRINGS|CALIFORNIA', s):
+        return 'CALIFORNIA'
+    if re.search(r'MIAMI|MIAMI BEACH', s):
+        return 'MIAMI'
+    if re.search(r'LAS VEGAS|\bVEGAS\b', s):
+        return 'LAS VEGAS'
+    for k in ('AUSTIN', 'DALLAS', 'HOUSTON', 'SAN ANTONIO', 'CHICAGO'):
         if k in s:
             return k
     for loc, m in LOC_TO_METRO.items():
