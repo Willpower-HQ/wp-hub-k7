@@ -1,6 +1,7 @@
 /* Per-event goals (targets). Edit freely. Numbers are how many CONFIRMED of each you want.
    Set a specific event by its id in goalsById; otherwise a sensible default is inferred from the name. */
 window.WP_CONFIG = {
+  team: ['Bill', 'Kathleen', 'Joanie', 'Intern'], // who tasks can be assigned to; edit freely
   goalsById: {
     // '<eventId>': { speakers: 6, vendors: 20, guests: 120 },
     '2c938388847e808990b5cbffa358108a': { speakers: 6, vendors: 22, guests: 120 }, // NYC Wellness Lounge Aug 19

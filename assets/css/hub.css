@@ -290,17 +290,34 @@ tbody tr.click{cursor:pointer}
 .caldow{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--line)}
 .caldow span{padding:9px 10px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .calgrid{display:grid;grid-template-columns:repeat(7,1fr)}
-.calcell{min-height:96px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 8px;position:relative}
+.calcell{height:112px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 7px;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:3px}
 .calcell:nth-child(7n){border-right:0}
+.calcell.has{cursor:pointer}
+.calcell.has:hover{background:var(--panel-2)}
 .calcell.dim{background:rgba(255,255,255,.015)}
 .calcell.dim .dnum{color:var(--line-2)}
-.calcell.today{background:rgba(245,208,0,.06)}
-.calcell .dnum{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-.calcell.today .dnum{color:var(--yellow);font-weight:700}
-.calev{display:block;font-size:11px;font-weight:600;border-radius:5px;padding:3px 6px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;color:#0a0a12;background:var(--yellow)}
+.calcell.today .dnum{background:var(--yellow);color:#0a0a12;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.calcell .dnum{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;align-self:flex-start}
+.calev{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;border-radius:5px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#0a0a12;background:var(--yellow)}
 .calev.ext{background:rgba(255,255,255,.12);color:var(--ink)}
-.calev.due{background:transparent;color:var(--s-amber);padding:1px 4px;font-weight:500}
-@media(max-width:700px){.calcell{min-height:64px;font-size:11px}.calev{font-size:9.5px}}
+.caltask{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.caltask .d{width:6px;height:6px;border-radius:50%;background:var(--s-amber);flex:none}
+.caltask.done .d{background:var(--green)}
+.caltask.done{color:var(--muted);text-decoration:line-through}
+.calmore{font-size:10.5px;color:var(--muted);font-weight:600}
+@media(max-width:700px){.calcell{height:78px;padding:4px}.calev,.caltask{font-size:9px}.calmore{font-size:9px}}
+
+/* assignee select */
+.asg{font-family:'Inter';font-size:11px;font-weight:600;border-radius:999px;padding:3px 8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-2);cursor:pointer}
+.asg[data-has="1"]{color:var(--violet);border-color:rgba(169,139,255,.4)}
+.dayrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.dayrow:last-child{border-bottom:0}
+.dayrow .cbx{width:19px;height:19px;flex:none;border-radius:5px;border:1.5px solid var(--line-2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:transparent;font-size:12px}
+.dayrow.done .cbx{background:var(--green);border-color:var(--green);color:#04120a}
+.dayrow .ti{flex:1;min-width:0;font-size:14px}
+.dayrow.done .ti{color:var(--muted);text-decoration:line-through}
+.dayrow .ev{font-size:11.5px;color:var(--muted)}
+.modal .box.wide{max-width:600px}
 
 /* task board */
 .taskhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:26px 0 12px}
