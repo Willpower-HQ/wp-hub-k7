@@ -63,6 +63,8 @@ let closeDrawer = () => {};
   ['search'].forEach(id => document.getElementById(id).oninput = () => { page = 0; render(); });
   ['cityF','catF','statusF','tierF','bouncedF','noEmailF'].forEach(id => document.getElementById(id).onchange = () => { page = 0; render(); });
   render();
+  const cparam = new URLSearchParams(location.search).get('c');
+  if (cparam) setTimeout(() => openDrawer(cparam), 50);
   document.getElementById('foot').textContent = meta.lastSyncAt ? 'Data refreshed ' + new Date(meta.lastSyncAt).toLocaleString() : '';
 
   const drawer = document.getElementById('drawer'), overlay = document.getElementById('overlay');
