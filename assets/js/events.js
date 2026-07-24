@@ -54,6 +54,38 @@
   tiles.push(tile('calendar.html', 'Overdue tasks', String(overdue), overdue ? 'past their due date' : 'nothing overdue', overdue ? 'bad' : ''));
   document.getElementById('attention').innerHTML = wp.length ? '<div class="hero-stats">' + tiles.join('') + '</div>' : '';
 
+  // ---- "Up next": the actual overdue + due-soon tasks across all upcoming events ----
+  const PR = { Critical: 0, High: 1, Medium: 2 };
+  const actions = [];
+  wp.forEach(e => {
+    const list = (tasksByEvent && tasksByEvent[e.id]) || [];
+    if (!list.length) return;
+    const nd = (taskState(e.id).ndone) || {};
+    list.forEach(t => {
+      const isDone = ('n' + t.id in nd) ? !!nd['n' + t.id] : t.status === 'COMPLETED';
+      if (isDone || !t.due) return;
+      const diff = Math.round((new Date(t.due + 'T12:00:00') - today) / 86400000);
+      if (diff <= 7) actions.push({ e, t, diff });
+    });
+  });
+  actions.sort((a, c) => a.diff - c.diff || (PR[a.t.priority] == null ? 3 : PR[a.t.priority]) - (PR[c.t.priority] == null ? 3 : PR[c.t.priority]));
+  const rel = d => d === 0 ? 'today' : d > 0 ? 'in ' + d + 'd' : Math.abs(d) + 'd ago';
+  const pchip = t => t.priority ? '<span class="pchip ' + E(t.priority.toLowerCase()) + '">' + E(t.priority) + '</span>' : '';
+  const unRow = a => '<a class="unrow" href="event.html?e=' + encodeURIComponent(a.e.id) + '&tab=checklist">'
+    + '<span class="due ' + (a.diff < 0 ? 'over' : 'soon') + '">' + E(HUB.fmtDate(a.t.due)) + ' &middot; ' + rel(a.diff) + '</span>'
+    + '<span class="nm">' + E(a.t.title) + '</span>' + pchip(a.t)
+    + '<span class="ev">' + E(a.e.name) + '</span></a>';
+  if (actions.length) {
+    const shown = actions.slice(0, 6);
+    const more = actions.length - shown.length;
+    document.getElementById('upnext').innerHTML =
+      '<div class="sectionrow"><h2>Up next</h2><span class="note">overdue and due in the next 7 days</span></div>'
+      + '<div class="upnext-list">' + shown.map(unRow).join('')
+      + (more > 0 ? '<a class="unrow more" href="calendar.html"><span class="nm">+ ' + more + ' more on the calendar</span></a>' : '') + '</div>';
+  } else {
+    document.getElementById('upnext').innerHTML = '';
+  }
+
   const pct = (n, total) => total ? (100 * n / total).toFixed(1) + '%' : '0%';
   const bigCard = e => {
     const rows = rowsByEvent[e.id] || [];

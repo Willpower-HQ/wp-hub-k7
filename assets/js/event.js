@@ -97,7 +97,7 @@
     return out;
   };
 
-  let showAll = false, tab = 'all', q = '';
+  let showAll = false, tab = (new URLSearchParams(location.search).get('tab')) || 'all', q = '';
   const build = () => SCORE.buildEventView(contacts, effPipeline(), ev, eventById, events, { includeUnknown: document.getElementById('includeUnknown').checked, showAllSuggested: showAll });
 
   document.getElementById('banners').innerHTML = !ev.internal
