@@ -109,6 +109,23 @@ button:disabled{opacity:.35;cursor:default}
 .ecard .prog div{font-size:12px;color:var(--muted)}
 .ecard .prog b{display:block;font-family:'DM Serif Display',serif;font-size:23px;color:#fff;font-weight:400;line-height:1}
 .ecard .prog b.zero{color:var(--line-2)}
+/* home: attention band */
+.hero-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:24px}
+.stat{display:block;border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:var(--panel);color:inherit;transition:.16s}
+.stat:hover{border-color:var(--line-2);background:var(--panel-2);transform:translateY(-2px)}
+.stat .lab{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stat .val{font-family:'DM Serif Display',serif;font-size:30px;line-height:1.05;color:#fff;margin:8px 0 3px}
+.stat .sub{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat.warn .val{color:var(--s-amber)} .stat.bad .val{color:var(--s-red)}
+/* home: richer event-card footer */
+.ecard-foot{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}
+.ecard-foot .track{height:8px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;display:flex;margin-bottom:12px}
+.ecard-foot .seg-c{background:var(--green)} .ecard-foot .seg-m{background:var(--yellow)} .ecard-foot .seg-s{background:var(--s-blue)}
+.cstats{display:flex;gap:8px 18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);align-items:baseline}
+.cstats b{color:#fff;font-weight:700;font-size:15px}
+.cstats .fu b{color:var(--s-amber)}
+.cstats .tk{margin-left:auto}
+.cstats .over{color:var(--s-red);font-weight:600;font-size:11.5px}
 
 /* mini lists */
 .minilist{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
