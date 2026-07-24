@@ -18,6 +18,15 @@ let closeDrawer = () => {};
   const nearItems = [];
   Object.entries(nearby).forEach(([eid, blk]) => (blk.items || []).forEach(n => nearItems.push(Object.assign({ host: (eventById[eid] || {}).name }, n))));
 
+  // people who matter (VIP / tiered / on an upcoming event) that we can't reach or are missing key info
+  const upIds = new Set(upcoming.map(e => e.id));
+  const pipContactIds = new Set(pipeline.filter(r => upIds.has(r.eventId) && r.contactId).map(r => r.contactId));
+  const important = c => (c.category || []).some(x => /VIP/i.test(x)) || c.wpTier || pipContactIds.has(c.id);
+  const missingOf = c => { const m = []; if (!c.email && c.emailStatus !== 'bounced') m.push('email'); if (!c.linkedin) m.push('LinkedIn'); if (!c.companyName) m.push('company'); return m; };
+  const needsInfo = contacts.filter(c => c.emailStatus !== 'bounced' && important(c) && missingOf(c).length)
+    .map(c => ({ c, missing: missingOf(c) }))
+    .sort((a, b) => b.missing.length - a.missing.length);
+
   document.getElementById('summary').innerHTML =
     '<span><b>' + bounced.length + '</b> bounced</span>'
     + '<span><b>' + dupeGroups.length + '</b> duplicate sets</span>'
@@ -29,6 +38,7 @@ let closeDrawer = () => {};
     ['bounced', 'Bounced emails', bounced.length],
     ['dupes', 'Duplicates', dupeGroups.length],
     ['left', 'Job changes', leftco.length],
+    ['needsinfo', 'Needs info', needsInfo.length],
     ['upcoming', 'Upcoming events', upcoming.length],
     ['past', 'Past events', past.length],
     ['near', 'Events near us', nearItems.length],
@@ -60,6 +70,8 @@ let closeDrawer = () => {};
     if (tab === 'bounced') b.innerHTML = intro('These addresses bounced. The email is cleared in Notion and the person kept. Find their new address on LinkedIn, then update Notion.') + list(bounced.length ? bounced.map(contactRow).join('') : empty('No bounced emails.'));
     else if (tab === 'dupes') b.innerHTML = intro('These people share an email with another row. Merge them in Notion.') + (dupeGroups.length ? dupeGroups.map(g => '<div class="panel"><h2>' + E(g[0].email || 'shared email') + '</h2>' + g.map(contactRow).join('') + '</div>').join('') : list(empty('No duplicates detected.')));
     else if (tab === 'left') b.innerHTML = intro('Auto-reply or notes suggest these people may have left their company. Verify on LinkedIn.') + list(leftco.length ? leftco.map(contactRow).join('') : empty('No flagged job changes.'));
+    else if (tab === 'needsinfo') b.innerHTML = intro('People we care about (VIP, tiered, or on an upcoming event) who are missing an email, LinkedIn, or company. Fill these in so outreach lists are complete.') + list(needsInfo.length ? needsInfo.map(x =>
+      '<div class="minirow click" data-id="' + E(x.c.id) + '" style="cursor:pointer"><span class="nm">' + E(x.c.name || '') + '</span><span class="loc">' + E(x.c.companyName || 'no company') + '</span>' + x.missing.map(m => '<span class="st" data-s="BOUNCED EMAIL">no ' + E(m) + '</span>').join(' ') + '</div>').join('') : empty('Everyone important has an email, LinkedIn, and company. Clean.'));
     else if (tab === 'upcoming') b.innerHTML = list(upcoming.map(eventRow).join(''));
     else if (tab === 'past') b.innerHTML = list(past.map(eventRow).join(''));
     else if (tab === 'near') b.innerHTML = intro('Other events happening around our event dates, for scouting or for Bill to attend. See them on the map in City Scout.') + list(nearItems.length ? nearItems.map(n =>
