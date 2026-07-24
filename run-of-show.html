@@ -4,11 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>City Scout · Willpower Outreach HQ</title>
+<title>Run of Show · Willpower Outreach HQ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <link rel="stylesheet" href="assets/css/hub.css?v=1784913963">
 <link rel="icon" href="assets/img/willpower-bird.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -22,7 +21,7 @@
     <a href="index.html">Events</a>
     <a href="calendar.html">Calendar</a>
     <a href="follow-ups.html">Follow-ups</a>
-    <a href="events-map.html" class="on">City Scout</a>
+    <a href="events-map.html">City Scout</a>
     <a href="contacts.html">Contacts</a>
     <a href="context.html">Context</a>
   </div>
@@ -30,23 +29,23 @@
 
 <div class="wrap">
   <div class="phead">
-    <div class="eyebrow">City Scout</div>
-    <h1>Events happening near us</h1>
-    <div class="sub">See what else is going on in a city around our event dates, so we can scout attendees or decide if Bill should go. Willpower events are marked in green, industry events in gray.</div>
-    <div class="actions" id="cityBtns"></div>
+    <div class="eyebrow" id="crumb"><a href="index.html" style="color:var(--yellow)">&larr; Events</a></div>
+    <h1 id="title">Run of Show</h1>
+    <div class="sub" id="sub"></div>
+    <div class="actions">
+      <button class="btn" onclick="window.print()">Print / PDF</button>
+      <button class="btn" id="addSlot">+ Add slot</button>
+      <button class="btn" id="resetRos">Reset to template</button>
+    </div>
   </div>
-
   <div id="banners"></div>
-  <div id="map"></div>
-
-  <div class="sectionrow"><h2 id="listHead">Events</h2><span class="note">click a row to find it on the map</span></div>
-  <div class="minilist" id="list"></div>
+  <div class="ros" id="ros"></div>
+  <div id="pool"></div>
   <div class="foot" id="foot"></div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="assets/js/data.js?v=1784913963"></script>
-<script src="assets/js/events-map.js?v=1784913963"></script>
+<script src="assets/js/run-of-show.js?v=1784913963"></script>
 <script src="assets/js/palette.js?v=1784913963"></script>
 <script src="assets/js/pwa.js?v=1784913963"></script>
 </body>

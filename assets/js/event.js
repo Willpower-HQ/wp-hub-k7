@@ -21,7 +21,8 @@
   if (ev.luma) links += '<a class="btn" href="' + E(ev.luma) + '" target="_blank" rel="noopener">Luma</a>';
   if (ev.website) links += '<a class="btn" href="' + E(ev.website) + '" target="_blank" rel="noopener">Website</a>';
   document.getElementById('links').innerHTML = links;
-  document.getElementById('links2').innerHTML = '<a class="btn" href="sponsor.html?e=' + encodeURIComponent(ev.id) + '" target="_blank" rel="noopener">Sponsor view &#8599;</a>';
+  document.getElementById('links2').innerHTML = '<a class="btn" href="sponsor.html?e=' + encodeURIComponent(ev.id) + '" target="_blank" rel="noopener">Sponsor view &#8599;</a>'
+    + (ev.internal ? '<a class="btn" href="run-of-show.html?e=' + encodeURIComponent(ev.id) + '">Run of show</a>' : '');
 
   // past-confirmed count per contact (warm path)
   const pastConfirmed = {};

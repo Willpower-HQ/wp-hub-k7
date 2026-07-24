@@ -371,6 +371,30 @@ tbody tr.click{cursor:pointer}
 #wpGate button{width:100%;justify-content:center;padding:12px}
 .wpgate-err{color:var(--s-red);font-size:13px;margin-top:12px;min-height:16px}
 
+/* run of show */
+.ros{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.ros-slot{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px 16px;display:grid;grid-template-columns:96px 1fr auto;gap:14px;align-items:start}
+.ros-slot .time input{width:86px;font-weight:700;color:var(--yellow);background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 6px;font-family:'Inter';font-size:15px}
+.ros-slot .ttl{font-weight:600;color:#fff;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 6px;width:100%;font-family:'Inter';font-size:15px}
+.ros-slot .time input:hover,.ros-slot .ttl:hover,.ros-slot input:focus{border-color:var(--line-2);outline:0}
+.ros-slot .people{margin-top:9px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ros-chip{background:var(--panel-2);border:1px solid var(--line-2);border-radius:999px;padding:3px 6px 3px 10px;font-size:12px;display:inline-flex;gap:7px;align-items:center;color:var(--ink)}
+.ros-chip .x{cursor:pointer;color:var(--muted);font-weight:700}
+.ros-chip .x:hover{color:var(--s-red)}
+.ros-slot select.addp{font-size:12px;padding:4px 6px;border-radius:8px}
+.ros-slot .ctrls{display:flex;gap:4px}
+.ros-slot .ctrls button{padding:5px 9px;font-size:13px;line-height:1}
+.ros-pool{border:1px dashed var(--line-2);border-radius:12px;padding:14px 18px;margin-top:14px;font-size:13.5px;color:var(--ink-2)}
+.ros-pool .nm{color:#fff;font-weight:600}
+@media(max-width:640px){.ros-slot{grid-template-columns:1fr;gap:8px}.ros-slot .ctrls{justify-content:flex-end}}
+@media print{.masthead,.phead .actions,.ros-slot .ctrls,.ros-slot select.addp,.foot,#pal{display:none!important}.ros-slot{break-inside:avoid}}
+
+/* saved views + tags */
+.viewbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+.tagchip{display:inline-block;font-size:11px;font-weight:600;border-radius:5px;padding:2px 8px;background:var(--s-plum-bg);color:var(--s-plum);margin:1px 3px 1px 0}
+.tagadd{display:flex;gap:8px;align-items:center;margin-top:6px}
+.tagadd input{font-size:13px;padding:6px 10px;flex:1}
+
 /* command palette */
 #pal{position:fixed;inset:0;z-index:150;display:none;align-items:flex-start;justify-content:center;padding:11vh 16px;background:rgba(3,3,8,.55);backdrop-filter:blur(3px)}
 #pal.open{display:flex}
