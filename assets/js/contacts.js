@@ -73,6 +73,7 @@ let closeDrawer = () => {};
     const c = contacts.find(x => x.id === cid); if (!c) return;
     const hist = pipeline.filter(r => r.contactId === cid).map(r => ({ r, e: eventById[r.eventId] })).filter(h => h.e)
       .sort((a, b) => (b.e.date || '').localeCompare(a.e.date || ''));
+    const fbEntries = (c.lastFeedback || '').split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
     const field = (k, v) => v ? '<div class="field"><div class="k">' + k + '</div>' + v + '</div>' : '';
     drawer.innerHTML = '<button class="close" onclick="closeDrawer()">Close</button>'
       + '<h2>' + E(c.name || '') + '</h2>'
@@ -84,15 +85,15 @@ let closeDrawer = () => {};
       + field('LinkedIn', c.linkedin ? '<a href="' + E(c.linkedin) + '" target="_blank" rel="noopener" style="text-decoration:underline">' + E(c.linkedin.replace(/^https?:\/\//, '')) + '</a>' : '')
       + field('Category', (c.category || []).map(E).join(', '))
       + field('Outreach status', c.outreachStatus ? '<span class="st" data-s="' + E(c.outreachStatus) + '">' + E(c.outreachStatus) + '</span>' + (c.lastContactDate ? ' <span class="mut">last contact ' + E(HUB.fmtDate(c.lastContactDate)) + '</span>' : '') : '')
-      + field('Last feedback', E(c.lastFeedback))
       + field('Industry', E(c.industry))
       + field('Notes', E(c.notes))
-      + '<div class="field"><div class="k">Event history</div>'
-      + (hist.length ? '<div class="timeline">' + hist.map(h =>
-          '<div class="ev"><b>' + E(h.e.name) + '</b> <span class="st" data-s="' + E(h.r.status) + '">' + E(h.r.status) + '</span>'
-          + (h.r.sentProduct ? ' <span class="st" data-s="CONFIRMED">sent product</span>' : '')
-          + '<div class="d">' + E(HUB.fmtDate(h.e.date)) + (h.r.role ? ' &middot; ' + E(h.r.role) : '') + '</div></div>').join('') + '</div>'
-        : '<span class="mut">No event history yet.</span>') + '</div>'
+      + '<div class="field"><div class="k">Relationship timeline</div>'
+      + ((fbEntries.length || hist.length) ? '<div class="timeline">'
+          + fbEntries.map(en => { const m = en.match(/^\[([^\]]+)\]\s*([\s\S]*)$/); const dt = m ? m[1] : '', tx = m ? m[2] : en; return '<div class="ev">' + E(tx) + (dt ? '<div class="d">' + E(dt) + '</div>' : '') + '</div>'; }).join('')
+          + hist.map(h => '<div class="ev"><b>' + E(h.e.name) + '</b> <span class="st" data-s="' + E(h.r.status) + '">' + E(h.r.status) + '</span>'
+            + (h.r.sentProduct ? ' <span class="st" data-s="CONFIRMED">sent product</span>' : '')
+            + '<div class="d">' + E(HUB.fmtDate(h.e.date)) + (h.r.role ? ' &middot; ' + E(h.r.role) : '') + '</div></div>').join('') + '</div>'
+        : '<span class="mut">No history yet.</span>') + '</div>'
       + '<div style="margin-top:20px"><a href="' + HUB.notionUrl(c.id) + '" target="_blank" rel="noopener"><button class="primary">Open in Notion</button></a></div>';
     drawer.classList.add('open'); overlay.classList.add('open');
   }
