@@ -71,8 +71,14 @@ For any event with a Luma URL:
 - External events: the page shows ONLY confirmed attendees (pipeline rows, ideally fed by Luma), never a database dump. Keep it that way.
 - Vendor statuses for an event live in that event's vendor tracker (e.g. the Aug 19 "VENDOR TRACKER" db, data source collection://37238388-847e-800b-a4c9-000b83df7d45). build_data.py merges vendor-tracker rows (CONFIRMED vendors, vendor type, gifting-suite vs attendee) into the pipeline. When a new event gets its own vendor tracker, add its raw pull as sync/state/raw/vendors_<event>.json with an eventId field and build_data folds it in. Skip blank tracker rows (no contact and no company).
 
+## 8e. Task tracker pull (calendar checklist) (RULE)
+- The calendar's per-event checklist is pulled from the Notion **TASK TRACKER** (data source `collection://30f38388-847e-8023-a0bd-000b1ea502de`). Columns: `ACTION ITEM` (title), `date:DUE DATE:start`, `STATUS`, `CATEGORY`, `PRIORITY LEVEL`, `DESCRIPTION`, `ASSIGNED PERSON`, `EVENT` (relation), `url`.
+- For each internal event that has a live checklist, SQL-query its rows and write `sync/state/tasks_raw_<event>.json` with `{ "event": "<undashed event id>", "eventName": "...", "pulledAt": "<date>", "results": [ ...rows... ] }`. (The Aug 19 Wellness Lounge is `sync/state/tasks_raw.json`, event `2c938388847e808990b5cbffa358108a`.)
+- `python3 sync/build_tasks.py` merges every `tasks_raw*.json` into `data/tasks.json`. The calendar plots each task on its due date and, for any event with a real checklist, replaces the generic playbook template with the Notion tasks.
+
 ## 9. Publish
 1. `python3 sync/build_data.py` (merges raw shards, preserves gmail-derived fields, writes data/*.json).
+1b. `python3 sync/build_tasks.py` (merges tasks_raw*.json into data/tasks.json for the calendar checklist).
 2. Apply this run's gmail-derived updates into data/contacts.json and data/pipeline.json (emailStatus, bouncedEmail, leftCompany, lastOutbound/lastInbound, outboundCount, followUp) if build_data did not already carry them.
 3. Update meta.json alerts with everything collected above.
 4. Update `sync/state/lastSync.json` and `processedMessageIds.json` (keep only ids from the last 14 days).

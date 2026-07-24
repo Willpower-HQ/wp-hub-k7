@@ -1,5 +1,5 @@
 (async () => {
-  const { contacts, events, pipeline, nearby, meta, eventById, contactById } = await HUB.load();
+  const { contacts, events, pipeline, nearby, meta, eventById, contactById, tasksByEvent } = await HUB.load();
   const E = HUB.esc;
   const id = new URLSearchParams(location.search).get('e');
   const ev = eventById[id];
@@ -22,7 +22,51 @@
   if (ev.website) links += '<a class="btn" href="' + E(ev.website) + '" target="_blank" rel="noopener">Website</a>';
   document.getElementById('links').innerHTML = links;
   document.getElementById('links2').innerHTML = '<a class="btn" href="sponsor.html?e=' + encodeURIComponent(ev.id) + '" target="_blank" rel="noopener">Sponsor view &#8599;</a>'
-    + (ev.internal ? '<a class="btn" href="run-of-show.html?e=' + encodeURIComponent(ev.id) + '">Run of show</a>' : '');
+    + (ev.internal ? '<a class="btn" href="run-of-show.html?e=' + encodeURIComponent(ev.id) + '">Run of show</a><a class="btn" href="calendar.html">Calendar</a>' : '');
+
+  // ---- Notion TASK TRACKER checklist (shares localStorage with the Calendar page) ----
+  const TEAM = (window.WP_CONFIG && WP_CONFIG.team) || ['Bill', 'Kathleen'];
+  const evTasks = (tasksByEvent && tasksByEvent[ev.id]) || [];
+  const TKEY = 'wp_tasks_' + ev.id;
+  const tState = () => { try { return JSON.parse(localStorage.getItem(TKEY) || '{}'); } catch (e) { return {}; } };
+  const tSave = s => { try { localStorage.setItem(TKEY, JSON.stringify(s)); } catch (e) {} };
+  const parseD = s => s ? new Date(s + 'T12:00:00') : null;
+  const today0 = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+  const tBucket = db => db == null ? 'Scheduled' : db < 0 ? 'After the event' : db === 0 ? 'Event day' : db <= 3 ? 'Final 72 hours' : db <= 7 ? 'Event week' : db <= 14 ? 'Two weeks out' : db <= 21 ? 'Three weeks out' : 'Early prep';
+  const taskList = () => {
+    const s = tState(), nd = s.ndone || {}, asg = s.assignee || {}, evd = parseD(ev.date);
+    return evTasks.map(t => {
+      const tid = 'n' + t.id, base = t.status === 'COMPLETED', due = parseD(t.due);
+      return {
+        id: tid, title: t.title, done: (tid in nd) ? !!nd[tid] : base, due,
+        phase: tBucket(evd && due ? Math.round((evd - due) / 86400000) : null),
+        assignee: asg[tid] || (t.assignee && t.assignee[0]) || '', priority: t.priority || '', category: t.category || '', url: t.url || '',
+      };
+    });
+  };
+  const setTaskDone = (tid, val) => { const s = tState(); s.ndone = s.ndone || {}; s.ndone[tid] = val ? 1 : 0; tSave(s); render(); };
+  const setTaskAssignee = (tid, who) => { const s = tState(); s.assignee = s.assignee || {}; if (who) s.assignee[tid] = who; else delete s.assignee[tid]; tSave(s); render(); };
+  function checklistHTML() {
+    let list = taskList();
+    if (q) { const s = q.toLowerCase(); list = list.filter(t => (t.title || '').toLowerCase().includes(s) || (t.category || '').toLowerCase().includes(s)); }
+    const iso = d => { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 10); };
+    const rel = d => { if (!d) return ''; const diff = Math.round((d - today0) / 86400000); return diff === 0 ? 'today' : diff > 0 ? 'in ' + diff + 'd' : Math.abs(diff) + 'd ago'; };
+    const cls = t => t.done ? '' : (t.due && t.due < today0 ? ' over' : (t.due && (t.due - today0) / 86400000 <= 5 ? ' soon' : ''));
+    const pchip = t => t.priority ? '<span class="pchip ' + E(t.priority.toLowerCase()) + '">' + E(t.priority) + '</span>' : '';
+    const nlink = t => t.url ? '<a class="nlink" href="' + E(t.url) + '" target="_blank" rel="noopener" title="Open in Notion" onclick="event.stopPropagation()">Notion&#8599;</a>' : '';
+    const asg = t => '<select class="asg" data-has="' + (t.assignee ? 1 : 0) + '" data-tid="' + E(t.id) + '"><option value="">Assign</option>' + TEAM.map(m => '<option' + (m === t.assignee ? ' selected' : '') + '>' + E(m) + '</option>').join('') + '</select>';
+    let phase = '';
+    const rows = list.map(t => {
+      let head = ''; if (t.phase !== phase) { phase = t.phase; head = '<div class="phase-lbl">' + E(t.phase) + '</div>'; }
+      return head + '<div class="task' + (t.done ? ' done' : '') + '">'
+        + '<span class="cbx" data-tid="' + E(t.id) + '" data-done="' + (t.done ? 1 : 0) + '">&#10003;</span>'
+        + '<span class="ti">' + E(t.title) + (t.category ? '<span class="cat">' + E(t.category) + '</span>' : '') + '</span>'
+        + pchip(t) + asg(t)
+        + (t.due ? '<span class="due' + cls(t) + '">' + E(HUB.fmtDate(iso(t.due))) + ' &middot; ' + rel(t.due) + '</span>' : '<span class="due"></span>')
+        + nlink(t) + '</div>';
+    }).join('');
+    return '<div class="tasklist">' + (rows || '<div class="task"><span class="ti mut">No tasks match.</span></div>') + '</div>';
+  }
 
   // past-confirmed count per contact (warm path)
   const pastConfirmed = {};
@@ -162,11 +206,21 @@
     const defs = v.internal
       ? [['all', 'All contacts'], ['inprogress', 'In progress'], ['confirmed', 'Confirmed'], ['speakers', 'Speakers'], ['vendors', 'Vendors'], ['attendees', 'Attendees'], ['suggested', 'Suggested invites']]
       : [['all', 'All attendees'], ['confirmed', 'Confirmed'], ['inprogress', 'In motion']];
+    if (v.internal && evTasks.length) defs.push(['checklist', 'Checklist']);
     if (!defs.some(([k]) => k === tab)) tab = defs[0][0];
-    const cnt = k => k === 'confirmed' ? confirmedItems.length : (B[k] || []).length;
+    const cnt = k => k === 'confirmed' ? confirmedItems.length : k === 'checklist' ? evTasks.length : (B[k] || []).length;
     document.getElementById('tabs').innerHTML = defs.map(([k, l]) =>
       '<button class="' + (tab === k ? 'on' : '') + '" data-t="' + k + '">' + l + '<span class="cnt">' + cnt(k) + '</span></button>').join('');
     document.querySelectorAll('#tabs button').forEach(x => x.onclick = () => { tab = x.dataset.t; render(); });
+
+    if (tab === 'checklist') {
+      const doneN = taskList().filter(t => t.done).length;
+      document.getElementById('listHead').innerHTML = '<div class="banner">Event checklist, pulled from the Notion TASK TRACKER. <b>' + doneN + '</b> of ' + evTasks.length + ' done. Grouped by countdown to event day. Check-offs save on this device for now.</div>';
+      const g = document.getElementById('groups'); g.innerHTML = checklistHTML();
+      g.querySelectorAll('.cbx[data-tid]').forEach(b => b.onclick = () => setTaskDone(b.dataset.tid, b.dataset.done !== '1'));
+      g.querySelectorAll('.asg[data-tid]').forEach(s => s.onchange = () => setTaskAssignee(s.dataset.tid, s.value));
+      return;
+    }
 
     let items = (tab === 'confirmed' ? confirmedItems : (B[tab] || [])).slice();
     if (q) { const s = q.toLowerCase(); items = items.filter(i => [i.c.name, i.c.companyName, i.c.title, i.c.email].some(x => (x || '').toLowerCase().includes(s))); }

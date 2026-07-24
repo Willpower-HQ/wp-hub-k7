@@ -42,8 +42,8 @@ const HUB = (() => {
       try { const r = await fetch('data/' + f + '?v=' + Date.now()); return r.ok ? r.json() : null; }
       catch (e) { return null; }
     };
-    const [contacts, events, pipeline, nearby, meta] = await Promise.all([
-      get('contacts.json'), get('events.json'), get('pipeline.json'), get('nearby-events.json'), get('meta.json'),
+    const [contacts, events, pipeline, nearby, meta, tasks] = await Promise.all([
+      get('contacts.json'), get('events.json'), get('pipeline.json'), get('nearby-events.json'), get('meta.json'), get('tasks.json'),
     ]);
     cache = {
       contacts: (contacts && contacts.contacts) || [],
@@ -51,9 +51,12 @@ const HUB = (() => {
       pipeline: (pipeline && pipeline.rows) || [],
       nearby: (nearby && nearby.byEvent) || {},
       meta: meta || {},
+      tasks: (tasks && tasks.tasks) || [],
     };
     cache.contactById = Object.fromEntries(cache.contacts.map(c => [c.id, c]));
     cache.eventById = Object.fromEntries(cache.events.map(e => [e.id, e]));
+    cache.tasksByEvent = {};
+    cache.tasks.forEach(t => { (cache.tasksByEvent[t.event] = cache.tasksByEvent[t.event] || []).push(t); });
     return cache;
   }
 
