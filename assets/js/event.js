@@ -21,6 +21,16 @@
   if (ev.luma) links += '<a class="btn" href="' + E(ev.luma) + '" target="_blank" rel="noopener">Luma</a>';
   if (ev.website) links += '<a class="btn" href="' + E(ev.website) + '" target="_blank" rel="noopener">Website</a>';
   document.getElementById('links').innerHTML = links;
+  document.getElementById('links2').innerHTML = '<a class="btn" href="sponsor.html?e=' + encodeURIComponent(ev.id) + '" target="_blank" rel="noopener">Sponsor view &#8599;</a>';
+
+  // past-confirmed count per contact (warm path)
+  const pastConfirmed = {};
+  pipeline.forEach(r => {
+    if (r.contactId && r.status === 'CONFIRMED') {
+      const pe = eventById[r.eventId];
+      if (pe && pe.date && new Date(pe.date) < new Date() && r.eventId !== ev.id) pastConfirmed[r.contactId] = (pastConfirmed[r.contactId] || 0) + 1;
+    }
+  });
 
   // Status marks. If the Notion write path is live (Netlify function configured), edits save to Notion
   // and are shared with everyone; otherwise they fall back to this device (localStorage).
@@ -90,16 +100,17 @@
       + STATUS_OPTS.map(o => '<option' + (o === cur ? ' selected' : '') + '>' + o + '</option>').join('') + '</select>';
   };
   const detailOf = it => {
-    if (tab === 'suggested') return (it.why || []).slice(0, 2).map(E).join(' &middot; ');
+    const warm = pastConfirmed[it.c.id] ? 'Returning &middot; ' + pastConfirmed[it.c.id] + ' past event' + (pastConfirmed[it.c.id] > 1 ? 's' : '') : '';
+    const join = arr => arr.filter(Boolean).join(' &middot; ');
+    if (tab === 'suggested') return join([warm, (it.why || []).slice(0, 2).map(E).join(' &middot; ')]);
     const r = it.row || {}, parts = [];
     const vt = it.vendorType ? (Array.isArray(it.vendorType) ? it.vendorType : [it.vendorType]) : null;
-    if (vt) parts.push(...vt);
-    if (r.product) parts.push(r.product);
-    if (r.logistics) parts.push(r.logistics);
-    if (parts.length) return parts.map(E).join(' &middot; ');
-    if (r.speakerAngle) return E(r.speakerAngle);
-    if (r.relationship) return E(r.relationship);
-    return '';
+    if (vt) parts.push(...vt.map(E));
+    if (r.product) parts.push(E(r.product));
+    if (r.logistics) parts.push(E(r.logistics));
+    if (!parts.length && r.speakerAngle) parts.push(E(r.speakerAngle));
+    if (!parts.length && r.relationship) parts.push(E(r.relationship));
+    return join([warm, parts.join(' &middot; ')]);
   };
   const draftBtn = it => (it.c.id && it.c.email && it.c.emailStatus === 'ok')
     ? ' <button class="draftbtn" data-cid="' + E(it.c.id) + '" data-kind="' + (window.WP_DRAFT ? WP_DRAFT.kindFor(it) : 'invite') + '">Draft</button>' : '';
@@ -130,6 +141,23 @@
   const render = () => {
     const v = build(), B = v.buckets;
     const confirmedItems = (B.all || []).filter(i => i.status === 'CONFIRMED');
+
+    // mission control: goals + metrics (internal events)
+    const gEl = document.getElementById('goals'), mEl = document.getElementById('metrics');
+    if (v.internal && window.WP_CONFIG) {
+      const goal = WP_CONFIG.goalsFor(ev);
+      const cs = confirmedItems.filter(isSpk).length, cv = confirmedItems.filter(i => !isSpk(i) && isVen(i)).length, cg = confirmedItems.length - cs - cv;
+      const bar = (label, have, want) => {
+        const pctv = Math.min(100, want ? Math.round(100 * have / want) : 0);
+        return '<div class="goal' + (have >= want ? ' done' : '') + '"><div class="top"><span>' + label + ' <b>' + have + '</b><span class="g"> / ' + want + '</span></span><span class="g">' + pctv + '%</span></div><div class="bar"><div class="fill" style="width:' + pctv + '%"></div></div></div>';
+      };
+      gEl.innerHTML = bar('Speakers', cs, goal.speakers) + bar('Vendors', cv, goal.vendors) + bar('Guests', cg, goal.guests);
+      const contacted = rowsForEvent.filter(r => SCORE.IN_MOTION.has(r.status)).length;
+      const engaged = rowsForEvent.filter(r => ['ENGAGED', 'NEGOTIATIONS', 'CONFIRMED'].includes(r.status)).length;
+      const rate = contacted ? Math.round(100 * engaged / contacted) : 0;
+      mEl.innerHTML = '<span>Reply rate <b>' + rate + '%</b></span><span>Engaged <b>' + engaged + '</b></span><span>Declined <b>' + rowsForEvent.filter(r => r.status === 'DECLINED').length + '</b></span>';
+    } else { gEl.innerHTML = ''; mEl.innerHTML = ''; }
+
     const defs = v.internal
       ? [['all', 'All contacts'], ['inprogress', 'In progress'], ['confirmed', 'Confirmed'], ['speakers', 'Speakers'], ['vendors', 'Vendors'], ['attendees', 'Attendees'], ['suggested', 'Suggested invites']]
       : [['all', 'All attendees'], ['confirmed', 'Confirmed'], ['inprogress', 'In motion']];
@@ -143,6 +171,8 @@
     if (q) { const s = q.toLowerCase(); items = items.filter(i => [i.c.name, i.c.companyName, i.c.title, i.c.email].some(x => (x || '').toLowerCase().includes(s))); }
     const sf = document.getElementById('statusFilter').value;
     if (sf) items = items.filter(i => (i.status || 'TO CONTACT') === sf);
+    const of = document.getElementById('ownerFilter').value;
+    if (of) items = items.filter(i => (i.row && i.row.owner) === of);
 
     let head = '';
     if (tab === 'suggested' && v.internal) head = '<div class="banner">Curated from your database and people who came to similar past events. Showing ' + B.suggested.length + ' of ' + B.suggestedTotal + '. <a href="#" id="toggleAll" style="text-decoration:underline">' + (showAll ? 'show top matches only' : 'show all') + '</a></div>';
@@ -172,6 +202,10 @@
   const sfEl = document.getElementById('statusFilter');
   sfEl.innerHTML = '<option value="">Any status</option>' + STATUS_OPTS.map(o => '<option>' + o + '</option>').join('');
   sfEl.onchange = render;
+  const ownEl = document.getElementById('ownerFilter');
+  const owners = [...new Set(pipeline.filter(r => r.eventId === ev.id && r.owner).map(r => r.owner))];
+  ownEl.innerHTML = '<option value="">Any owner (my board)</option>' + owners.map(o => '<option>' + E(o) + '</option>').join('');
+  ownEl.onchange = render;
   document.getElementById('search').oninput = e => { q = e.target.value; render(); };
   document.getElementById('includeUnknown').onchange = render;
   render();
